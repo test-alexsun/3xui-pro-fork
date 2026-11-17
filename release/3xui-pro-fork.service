@@ -1,0 +1,19 @@
+[Unit]
+Description=3xui-pro-fork panel (candidate)
+After=network.target
+
+[Service]
+Type=simple
+WorkingDirectory=/opt/3xui-pro-fork/panel
+Environment=XUI_DB_FOLDER=/var/lib/3xui-pro-fork
+Environment=XUI_DB_TYPE=sqlite
+Environment=XUI_BIN_FOLDER=/opt/3xui-pro-fork/panel/bin
+Environment=XUI_LOG_FOLDER=/var/log/3xui-pro-fork
+ExecStart=/opt/3xui-pro-fork/panel/x-ui
+Restart=on-failure
+RestartSec=5
+UMask=0077
+NoNewPrivileges=true
+
+[Install]
+WantedBy=multi-user.target

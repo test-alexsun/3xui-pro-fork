@@ -1,0 +1,21 @@
+# BUILD-ALL-04 — PASS (scoped)
+
+Baseline `5c74cd3654dd4e43e5dbc82011c9974e5efe8831`. Existing peer-inspector changes and untracked evidence were preserved. This stage does not implement upgrade, rollback, a new FD_NATIVE architecture or production deployment.
+
+## Implementation
+
+- The fresh-install candidate now accepts an explicit client-reachable `--awg-endpoint`, unused RFC1918 `--awg-subnet` /30 and optional `--awg-port` (default 29177). It checks routes, UDP port, TUN and CAP_NET_ADMIN, copies the pinned binaries, generates one server/client configuration and starts a separate AWG systemd unit alongside the panel. Configurations and keys are private. Upgrade and recovery of partial installation remain unsupported.
+- The controller uses the pinned daemon's foreground and `WG_TUN_FD` interface. It creates a named TUN with `IFF_TUN_EXCL`, retains its FD, refuses an existing interface/control socket and a duplicate instance, and closes its own FD and child on shutdown. It never deletes an interface by name. It is independent of the FD_NATIVE namespace harness; existing observer, ownership and journal code was not modified. Interface identity checks do not prove immunity to concurrent privileged replacement between checks and name-based configuration operations.
+- VM-tested candidate: `.stage06b/build-all-04-systemd/candidate-v4.tar.gz`, SHA256 `cba2038ed2ec1b5cf61f3ee9bfcc021e3b0608d52b81ab2d5273d3f52d4ed553`. A subsequent documentation-only rebuild is `.stage06b/build-all-04-systemd/candidate-v5.tar.gz`, SHA256 `40da2496ece89483b511657d0d5375747726e5b794b4bd7b6a4794d5a5d22708`; all archive members were compared and only `README-CANDIDATE.md` differs, and component hashes were rechecked. These are test candidates, not a complete production distribution.
+
+## Checks
+
+- Real systemd VM acceptance: PASS using candidate v4 in a disposable QEMU Debian 13 VM with `-nic none` and a fresh overlay. Common installation, panel login/API, Xray 26.11.9 version, AWG service start, interface, handshake, UDP request and response, `systemctl stop/start/restart`, and configuration preservation passed. Markers `PANEL_API_PASS`, `AWG_HANDSHAKE_BIDIRECTIONAL_UDP_PASS`, `AWG_SYSTEMD_STOP_START_RESTART_CONFIG_PASS`, and `BUILD04_VM_PASS` were observed. An earlier rehearsal using v3 also passed.
+- Controller E2E: PASS on final code in a disposable Debian 13 Docker container with `--network none` and SYS_ADMIN/NET_ADMIN/NET_RAW. It checks handshake and request/response, stop and restart with reconnection, unchanged configurations, duplicate lock refusal, refusal to attach to an existing foreign TUN, and ignores an injected `WG_UAPI_FD`. No foreign interface is deleted by the service.
+- Existing NAMED AWG core E2E: PASS, offline pinned build, network-none Debian container, including handshake, traffic, restart, reconnect, negative cases, cleanup and JSON Schema.
+- Unified regression: PASS, 245 tests in 393.332 seconds on the clean baseline, Debian 13 Docker with read-only root, no network, separate native volumes and all capabilities dropped. One pre-existing SQLite `ResourceWarning` appeared. This regression does not cover the new service; the separate controller and VM tests do.
+- Python AST and Bash syntax: PASS. `git diff --check` and independent whitespace check for new files: PASS, with the preserved peer-inspector CRLF warning. `systemd-analyze verify` passed after replacing an unsupported condition directive with `ConditionPathExists` plus `test -c`.
+
+The initial direct controller fixture had a wrong socket path and then a session timeout after server restart; corrected tests wait for natural reconnect. The first VM bootstrap did not execute the test successfully; a fresh overlay and corrected cloud-init test were used. The VM image's SHA512 matched the official Debian cloud SHA512SUMS.
+
+This PASS is scoped to the stated AWG service acceptance, not the complete project release or production readiness. The installer still refuses upgrades, does not provide rollback or automatic recovery of a partial installation, and does not configure public TLS, firewall, forwarding or NAT. The client configuration routes only the server tunnel address. Plain WireGuard inbound and the remaining release gates were outside this stage. No push, merge or production deployment was performed.

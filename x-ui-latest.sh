@@ -1,4 +1,8 @@
 #!/bin/bash
+# PREVIEW-XONIX-02: the legacy script is unsafe for existing installations.
+printf '%s\n' 'INSTALL_DISABLED: legacy installer can destroy existing data and Nginx configuration; no safe standalone installer is available yet.' >&2
+exit 1
+
 ################################################################################
 # 3x-ui-pro extended installer
 # Based on: github.com/mozaroc/3x-ui-pro

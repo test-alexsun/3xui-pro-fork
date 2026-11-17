@@ -1,2 +1,7 @@
 assets/decoy/xonix/index.html -text
 tests/xonix/*.sh text eol=lf
+tests/release/*.sh text eol=lf
+release/*.py text eol=lf
+release/*.service text eol=lf
+tools/*.py text eol=lf
+x-ui-latest.sh text eol=lf
