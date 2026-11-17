@@ -5,3 +5,5 @@ release/*.py text eol=lf
 release/*.service text eol=lf
 tools/*.py text eol=lf
 x-ui-latest.sh text eol=lf
+install-preview.sh text eol=lf
+tests/release/*.py text eol=lf
