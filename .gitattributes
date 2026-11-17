@@ -1,0 +1,2 @@
+assets/decoy/xonix/index.html -text
+tests/xonix/*.sh text eol=lf
