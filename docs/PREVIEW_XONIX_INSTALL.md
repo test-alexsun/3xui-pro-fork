@@ -27,8 +27,8 @@ server block is `/etc/nginx/conf.d/3xui-pro-fork-preview.conf`. Prior owned
 versions are saved under `/var/lib/3xui-pro-fork/preview-web-backups`.
 Browser high scores use localStorage and are separate for each browser origin.
 
-This experimental server is HTTP-only. It does not configure TLS, ACME,
-public panel/API, subscriptions, XHTTP, REALITY or fallback routes. It does not
+The default experimental server is HTTP-only. It does not configure public
+TLS, ACME issuance, public panel/API, subscriptions, XHTTP, REALITY or fallback routes. It does not
 configure firewall or NAT. The panel is bound to loopback; its initial
 credentials appear in the root-readable service journal. AWG is a separate
 NAMED service; FD_NATIVE is not enabled. The installation procedure, repeat
@@ -47,3 +47,20 @@ nginx -t
 Backups can contain private data. A `RECOVERY_REQUIRED` result is not proof of
 successful recovery; preserve the existing files and inspect their state before
 any manual action. Full project upgrade and rollback are not implemented.
+
+## Optional isolated HTTPS sandbox
+
+For an isolated VM only, supply both `--sandbox-tls-cert /absolute/cert.pem`
+and `--sandbox-tls-key /absolute/key.pem` together with `--test-mode`. The
+certificate must be root-owned; its private key must also be root-only. The
+installer does not generate or renew certificates. Sandbox HTTP listens on
+port 18080 and HTTPS binds only `127.0.0.1:18443`. The site host serves XONIX;
+`panel.<domain>` proxies the panel to its loopback listener with WebSocket
+headers. The sandbox serves existing HTTP-01 test tokens beneath
+`/var/www/3xui-pro-fork/decoy/.well-known/acme-challenge/`; it does not issue
+a certificate. A self-signed sandbox certificate was used in the VM test.
+
+Do not mistake this sandbox for the intended public SNI-stream architecture.
+TCP 443 and UDP 443 are not managed by this integration; REALITY, P0/P1/P3,
+subscription routes and public TLS remain unverified. See
+`docs/stages/evidence/preview-xonix-04/test-results.md` for current results.

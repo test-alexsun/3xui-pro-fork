@@ -103,6 +103,34 @@ class PublishTest(unittest.TestCase):
             self.assertFalse(module.NGINX.exists())
             self.assertEqual(json.loads(module.STATE.read_text())['phase'], 'RECOVERY_REQUIRED')
 
+    def test_sandbox_is_loopback_and_fail_closed_on_repeat(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            module.DATA = root / 'data'; module.DATA.mkdir(mode=0o700)
+            module.STATE = module.DATA / 'state.json'
+            module.WEB = root / 'web' / 'index.html'; module.WEB.parent.mkdir()
+            module.NGINX = root / 'conf' / 'site.conf'; module.NGINX.parent.mkdir()
+            sandbox = ('/tmp/sandbox-cert.pem', '/tmp/sandbox-key.pem')
+            with mock.patch.object(module, 'preflight_nginx'), mock.patch.object(module, 'sandbox_listener_available') as probe, mock.patch.object(module, 'run'), mock.patch.object(module, 'check_http'), mock.patch.object(module, 'check_sandbox_https') as check:
+                module.publish('example.test', 18080, b'html', sandbox)
+                probe.assert_called_once()
+                check.assert_called_once_with('example.test', b'html')
+                text = module.NGINX.read_text()
+                self.assertEqual(text.count('listen 127.0.0.1:18443 ssl;'), 2)
+                self.assertIn('server_name panel.example.test;', text)
+                self.assertIn('proxy_pass http://127.0.0.1:2053;', text)
+                self.assertIn('location ^~ /.well-known/acme-challenge/', text)
+                self.assertNotIn('try_files $uri /index.html', text)
+                self.assertTrue(json.loads(module.STATE.read_text())['sandbox'])
+                with self.assertRaisesRegex(RuntimeError, 'requires the original sandbox options'):
+                    module.publish('example.test', 18080, b'html')
+
+    def test_sandbox_rejects_occupied_port(self):
+        with mock.patch.object(module.subprocess, 'check_output', side_effect=[
+                'server { listen 127.0.0.1:18443 ssl; }']):
+            with self.assertRaisesRegex(RuntimeError, 'already exists'):
+                module.sandbox_listener_available()
+
 
 if __name__ == '__main__':
     unittest.main()

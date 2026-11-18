@@ -3,12 +3,14 @@
 import argparse
 import fcntl
 import hashlib
+import http.client
 import json
 import os
 from pathlib import Path
 import re
 import shutil
 import socket
+import ssl
 import stat
 import subprocess
 import sys
@@ -79,17 +81,52 @@ def verify_package(path):
     return manifest
 
 
-def nginx_config(domain, port):
-    return (f'''# Managed by 3xui-pro-fork preview; do not edit manually.
+def nginx_config(domain, port, sandbox=None):
+    challenge = ('location ^~ /.well-known/acme-challenge/ { '
+                 'root /var/www/3xui-pro-fork/decoy; try_files $uri =404; }') if sandbox else ''
+    config = (f'''# Managed by 3xui-pro-fork preview; do not edit manually.
 server {{
     listen {port};
     server_name {domain};
     autoindex off;
+    {challenge}
     location = / {{ root /var/www/3xui-pro-fork/decoy; try_files /index.html =404; }}
     location ~ (^|/)\\. {{ return 404; }}
     location / {{ return 404; }}
 }}
-''').encode()
+''')
+    if sandbox:
+        cert, key = sandbox
+        config += f'''
+server {{
+    listen 127.0.0.1:18443 ssl;
+    server_name {domain};
+    ssl_certificate {cert};
+    ssl_certificate_key {key};
+    autoindex off;
+    {challenge}
+    location = / {{ root /var/www/3xui-pro-fork/decoy; try_files /index.html =404; }}
+    location ~ (^|/)\\. {{ return 404; }}
+    location / {{ return 404; }}
+}}
+server {{
+    listen 127.0.0.1:18443 ssl;
+    server_name panel.{domain};
+    ssl_certificate {cert};
+    ssl_certificate_key {key};
+    location / {{
+        proxy_pass http://127.0.0.1:2053;
+        proxy_http_version 1.1;
+        proxy_set_header Host $host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+        proxy_set_header Upgrade $http_upgrade;
+        proxy_set_header Connection $http_connection;
+    }}
+}}
+'''
+    return config.encode()
 
 
 def check_http(domain, port, expected):
@@ -98,6 +135,45 @@ def check_http(domain, port, expected):
     with opener.open(request, timeout=10) as response:
         if response.status != 200 or response.read() != expected:
             raise RuntimeError('XONIX HTTP verification failed')
+
+
+def check_sandbox_https(domain, expected):
+    context = ssl._create_unverified_context()  # Isolated test certificates only.
+    def get(name):
+        with socket.create_connection(('127.0.0.1', 18443), timeout=10) as raw:
+            with context.wrap_socket(raw, server_hostname=name) as tls:
+                tls.sendall(f'GET / HTTP/1.1\r\nHost: {name}\r\nConnection: close\r\n\r\n'.encode())
+                response = http.client.HTTPResponse(tls)
+                response.begin()
+                return response.status, response.read()
+    if get(domain) != (200, expected):
+        raise RuntimeError('sandbox HTTPS XONIX verification failed')
+    status, panel = get('panel.' + domain)
+    if status not in (200, 301, 302, 303) or panel == expected:
+        raise RuntimeError('sandbox HTTPS panel verification failed')
+
+
+def sandbox_certificate(cert, key):
+    result = []
+    for path in (cert, key):
+        if not path.is_absolute() or not re.fullmatch(r'/[A-Za-z0-9_./-]+', str(path)):
+            raise RuntimeError('sandbox certificate paths must be safe absolute paths')
+        regular(path)
+        result.append(str(path))
+    if key.stat().st_mode & 0o077:
+        raise RuntimeError('sandbox private key must be root-only')
+    return tuple(result)
+
+
+def sandbox_listener_available():
+    config = subprocess.check_output(['nginx', '-T'], stderr=subprocess.STDOUT, text=True)
+    config = re.sub(r'#.*', '', config)
+    if any(re.search(r'(^|[:\s])18443(?:\s|$)', entry)
+           for entry in re.findall(r'\blisten\s+([^;]+);', config)):
+        raise RuntimeError('sandbox port 18443 already exists in nginx configuration')
+    listeners = subprocess.check_output(['ss', '-H', '-ltnp', 'sport = :18443'], text=True)
+    if listeners.strip():
+        raise RuntimeError('sandbox port 18443 is already occupied')
 
 
 def preflight_nginx(domain, port):
@@ -122,7 +198,7 @@ def preflight_nginx(domain, port):
             probe.bind(('0.0.0.0', port))
 
 
-def publish(domain, port, html):
+def publish(domain, port, html, sandbox=None):
     """Replace only files proven by the previous private state; fail closed."""
     state = None
     if STATE.exists() or STATE.is_symlink():
@@ -132,13 +208,17 @@ def publish(domain, port, html):
         state = json.loads(STATE.read_text())
         if state.get('domain') != domain or state.get('port') != port or state.get('phase') != 'READY':
             raise RuntimeError('RECOVERY_REQUIRED: preview state is incomplete or differs')
+        if state.get('sandbox') and not sandbox:
+            raise RuntimeError('existing sandbox HTTPS requires the original sandbox options')
         for path, key in ((WEB, 'html'), (NGINX, 'nginx')):
             regular(path)
             if digest(path.read_bytes()) != state.get(key):
                 raise RuntimeError('managed file changed externally: ' + str(path))
     else:
         preflight_nginx(domain, port)
-    newconfig = nginx_config(domain, port)
+    if sandbox and not (state and state.get('sandbox')):
+        sandbox_listener_available()
+    newconfig = nginx_config(domain, port, sandbox) if sandbox else nginx_config(domain, port)
     oldweb = WEB.read_bytes() if state else None
     oldconfig = NGINX.read_bytes() if state else None
     # Persistent private backups remain available for operator review.
@@ -161,8 +241,10 @@ def publish(domain, port, html):
         run('nginx', '-t')
         run('systemctl', 'reload', 'nginx')
         check_http(domain, port, html)
+        if sandbox:
+            check_sandbox_https(domain, html)
         ready = {'phase': 'READY', 'domain': domain, 'port': port,
-                 'html': digest(html), 'nginx': digest(newconfig)}
+                 'html': digest(html), 'nginx': digest(newconfig), 'sandbox': bool(sandbox)}
         atomic(STATE, (json.dumps(ready) + '\n').encode(), 0o600)
     except Exception as error:
         try:
@@ -179,6 +261,8 @@ def publish(domain, port, html):
             run('systemctl', 'reload', 'nginx')
             if state:
                 check_http(domain, port, oldweb)
+                if state.get('sandbox'):
+                    check_sandbox_https(domain, oldweb)
                 atomic(STATE, (json.dumps(state) + '\n').encode(), 0o600)
         except Exception as recovery:
             raise RuntimeError(f'RECOVERY_REQUIRED: {error}; restoration failed: {recovery}') from recovery
@@ -193,7 +277,13 @@ def main():
     p.add_argument('--components', required=True, type=Path, help='unpacked verified candidate directory')
     p.add_argument('--awg-subnet', required=True, help='unused private IPv4 /30')
     p.add_argument('--test-mode', action='store_true', help='use isolated HTTP port 18080')
+    p.add_argument('--sandbox-tls-cert', type=Path, help='root-owned test certificate, sandbox only')
+    p.add_argument('--sandbox-tls-key', type=Path, help='root-only test private key, sandbox only')
     args = p.parse_args()
+    if (args.sandbox_tls_cert is None) != (args.sandbox_tls_key is None):
+        raise RuntimeError('sandbox certificate and key must be provided together')
+    if args.sandbox_tls_cert and not args.test_mode:
+        raise RuntimeError('sandbox TLS requires --test-mode; it listens only on loopback')
     if os.geteuid() != 0 or os.uname().machine != 'x86_64':
         raise RuntimeError('root on Linux amd64 required')
     release = Path('/etc/os-release').read_text()
@@ -204,6 +294,7 @@ def main():
     if not shutil.which('systemctl') or Path('/proc/1/comm').read_text().strip() != 'systemd':
         raise RuntimeError('running systemd is required')
     manifest = verify_package(args.components.resolve())
+    sandbox = sandbox_certificate(args.sandbox_tls_cert, args.sandbox_tls_key) if args.sandbox_tls_cert else None
     if not shutil.which('nginx') or not shutil.which('ip'):
         if not shutil.which('apt-get'):
             raise RuntimeError('apt-get is required to install missing dependencies')
@@ -233,8 +324,8 @@ def main():
             if directory.is_symlink() or directory.stat().st_uid != 0 or directory.stat().st_mode & 0o022:
                 raise RuntimeError('untrusted web directory: ' + str(directory))
         publish(args.domain, port,
-                (REPO / 'assets/decoy/xonix/index.html').read_bytes())
-    print('PREVIEW_INSTALLED: HTTP-only experimental preview; TLS and transports are not verified.')
+                (REPO / 'assets/decoy/xonix/index.html').read_bytes(), sandbox=sandbox)
+    print('PREVIEW_INSTALLED: experimental preview; public TLS and transports are not verified.')
 
 
 if __name__ == '__main__':
