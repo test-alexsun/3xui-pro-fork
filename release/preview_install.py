@@ -10,6 +10,7 @@ from pathlib import Path
 import re
 import shutil
 import socket
+import sqlite3
 import ssl
 import stat
 import subprocess
@@ -41,6 +42,23 @@ def regular(path):
     info = path.lstat()
     if not stat.S_ISREG(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
         raise RuntimeError('untrusted file: ' + str(path))
+
+
+def ensure_web_directories():
+    for directory in (WEB.parent.parent, WEB.parent):
+        created = False
+        try:
+            directory.mkdir(mode=0o755)
+            created = True
+        except FileExistsError:
+            pass
+        info = directory.lstat()
+        if not stat.S_ISDIR(info.st_mode) or info.st_uid != 0 or info.st_mode & 0o022:
+            raise RuntimeError('untrusted web directory: ' + str(directory))
+        if created:
+            directory.chmod(0o755)
+        elif info.st_mode & 0o755 != 0o755:
+            raise RuntimeError('existing web directory is not accessible: ' + str(directory))
 
 
 def atomic(path, data, mode):
@@ -81,7 +99,7 @@ def verify_package(path):
     return manifest
 
 
-def nginx_config(domain, port, sandbox=None):
+def nginx_config(domain, port, sandbox=None, subscriptions=None):
     challenge = ('location ^~ /.well-known/acme-challenge/ { '
                  'root /var/www/3xui-pro-fork/decoy; try_files $uri =404; }') if sandbox else ''
     config = (f'''# Managed by 3xui-pro-fork preview; do not edit manually.
@@ -97,6 +115,23 @@ server {{
 ''')
     if sandbox:
         cert, key = sandbox
+        locations = ''
+        if subscriptions:
+            for path in subscriptions['paths']:
+                locations += f'''
+    location ^~ {path} {{
+        access_log off;
+        error_log /dev/null crit;
+        proxy_cache off;
+        proxy_hide_header Referrer-Policy;
+        add_header Referrer-Policy no-referrer always;
+        proxy_pass http://127.0.0.1:{subscriptions['port']};
+        proxy_set_header Host $http_host;
+        proxy_set_header X-Real-IP $remote_addr;
+        proxy_set_header X-Forwarded-For $proxy_add_x_forwarded_for;
+        proxy_set_header X-Forwarded-Proto https;
+    }}
+'''
         config += f'''
 server {{
     listen 127.0.0.1:18443 ssl;
@@ -105,6 +140,7 @@ server {{
     ssl_certificate_key {key};
     autoindex off;
     {challenge}
+    {locations}
     location = / {{ root /var/www/3xui-pro-fork/decoy; try_files /index.html =404; }}
     location ~ (^|/)\\. {{ return 404; }}
     location / {{ return 404; }}
@@ -165,6 +201,63 @@ def sandbox_certificate(cert, key):
     return tuple(result)
 
 
+def subscription_config(database, domain, panel_pid):
+    """Read explicit local panel settings; never create or alter panel data."""
+    regular(database)
+    keys = ('subEnable', 'subListen', 'subPort', 'subPath', 'subJsonEnable',
+            'subJsonPath', 'subClashEnable', 'subClashPath', 'subCertFile',
+            'subKeyFile', 'subDomain', 'subURI', 'subJsonURI', 'subClashURI')
+    with sqlite3.connect(database.as_uri() + '?mode=ro', uri=True) as db:
+        rows = db.execute('SELECT key,value FROM settings WHERE key IN (' +
+                          ','.join('?' for _ in keys) + ')', keys).fetchall()
+    if len(rows) != len({key for key, _ in rows}):
+        raise RuntimeError('ambiguous subscription settings')
+    values = dict(rows)
+    if values.get('subEnable', 'true').lower() != 'true':
+        raise RuntimeError('subscription service is disabled')
+    if values.get('subListen', '') != '127.0.0.1':
+        raise RuntimeError('subscription service must explicitly listen on 127.0.0.1')
+    if any(values.get(k, '') for k in ('subCertFile', 'subKeyFile')):
+        raise RuntimeError('custom subscription backend TLS needs manual integration')
+    if values.get('subDomain', '').lower() not in ('', domain.lower()):
+        raise RuntimeError('subscription domain differs from sandbox domain')
+    try:
+        port = int(values.get('subPort', '2096'))
+    except (TypeError, ValueError):
+        raise RuntimeError('invalid subscription port') from None
+    if not 1 <= port <= 65535 or port in (2053, 18080, 18443):
+        raise RuntimeError('invalid or conflicting subscription port')
+    paths = []
+    for flag, key, uri_key in ((None, 'subPath', 'subURI'),
+                               ('subJsonEnable', 'subJsonPath', 'subJsonURI'),
+                               ('subClashEnable', 'subClashPath', 'subClashURI')):
+        if flag and values.get(flag, 'false').lower() != 'true':
+            continue
+        path = values.get(key, '')
+        if not re.fullmatch(r'/(?:[A-Za-z0-9_-]+/)+', path or ''):
+            raise RuntimeError('unsupported or missing subscription path')
+        if any(path.startswith(prefix) or prefix.startswith(path)
+               for prefix in ('/panel/', '/xhttp/', '/.well-known/')):
+            raise RuntimeError('subscription path conflicts with a reserved route')
+        if any(path.startswith(other) or other.startswith(path) for other in paths):
+            raise RuntimeError('overlapping subscription paths')
+        configured_uri = values.get(uri_key, '')
+        if configured_uri != f'https://{domain}:18443{path}':
+            raise RuntimeError('explicit subscription URL must match sandbox route')
+        paths.append(path)
+    output = subprocess.check_output(['ss', '-H', '-ltnp', f'sport = :{port}'], text=True)
+    listeners = [line for line in output.splitlines() if line.strip()]
+    if len(listeners) != 1:
+        raise RuntimeError('subscription listener identity is ambiguous')
+    columns = listeners[0].split()
+    owners = set(re.findall(r'pid=(\d+)', listeners[0]))
+    if len(columns) < 4 or columns[3] != f'127.0.0.1:{port}' or owners != {str(panel_pid)}:
+        raise RuntimeError('subscription listener is not owned by the verified panel process')
+    with socket.create_connection(('127.0.0.1', port), timeout=3):
+        pass
+    return {'port': port, 'paths': paths}
+
+
 def sandbox_listener_available():
     config = subprocess.check_output(['nginx', '-T'], stderr=subprocess.STDOUT, text=True)
     config = re.sub(r'#.*', '', config)
@@ -198,7 +291,7 @@ def preflight_nginx(domain, port):
             probe.bind(('0.0.0.0', port))
 
 
-def publish(domain, port, html, sandbox=None):
+def publish(domain, port, html, sandbox=None, subscriptions=None):
     """Replace only files proven by the previous private state; fail closed."""
     state = None
     if STATE.exists() or STATE.is_symlink():
@@ -210,6 +303,8 @@ def publish(domain, port, html, sandbox=None):
             raise RuntimeError('RECOVERY_REQUIRED: preview state is incomplete or differs')
         if state.get('sandbox') and not sandbox:
             raise RuntimeError('existing sandbox HTTPS requires the original sandbox options')
+        if state.get('subscriptions') and not subscriptions:
+            raise RuntimeError('existing subscription routes require --sandbox-subscriptions')
         for path, key in ((WEB, 'html'), (NGINX, 'nginx')):
             regular(path)
             if digest(path.read_bytes()) != state.get(key):
@@ -218,7 +313,8 @@ def publish(domain, port, html, sandbox=None):
         preflight_nginx(domain, port)
     if sandbox and not (state and state.get('sandbox')):
         sandbox_listener_available()
-    newconfig = nginx_config(domain, port, sandbox) if sandbox else nginx_config(domain, port)
+    newconfig = (nginx_config(domain, port, sandbox, subscriptions) if subscriptions else
+                 nginx_config(domain, port, sandbox) if sandbox else nginx_config(domain, port))
     oldweb = WEB.read_bytes() if state else None
     oldconfig = NGINX.read_bytes() if state else None
     # Persistent private backups remain available for operator review.
@@ -245,6 +341,8 @@ def publish(domain, port, html, sandbox=None):
             check_sandbox_https(domain, html)
         ready = {'phase': 'READY', 'domain': domain, 'port': port,
                  'html': digest(html), 'nginx': digest(newconfig), 'sandbox': bool(sandbox)}
+        if subscriptions:
+            ready['subscriptions'] = subscriptions
         atomic(STATE, (json.dumps(ready) + '\n').encode(), 0o600)
     except Exception as error:
         try:
@@ -279,11 +377,14 @@ def main():
     p.add_argument('--test-mode', action='store_true', help='use isolated HTTP port 18080')
     p.add_argument('--sandbox-tls-cert', type=Path, help='root-owned test certificate, sandbox only')
     p.add_argument('--sandbox-tls-key', type=Path, help='root-only test private key, sandbox only')
+    p.add_argument('--sandbox-subscriptions', action='store_true', help='proxy explicit loopback subscription settings in sandbox')
     args = p.parse_args()
     if (args.sandbox_tls_cert is None) != (args.sandbox_tls_key is None):
         raise RuntimeError('sandbox certificate and key must be provided together')
     if args.sandbox_tls_cert and not args.test_mode:
         raise RuntimeError('sandbox TLS requires --test-mode; it listens only on loopback')
+    if args.sandbox_subscriptions and not args.sandbox_tls_cert:
+        raise RuntimeError('sandbox subscriptions require sandbox TLS')
     if os.geteuid() != 0 or os.uname().machine != 'x86_64':
         raise RuntimeError('root on Linux amd64 required')
     release = Path('/etc/os-release').read_text()
@@ -312,19 +413,18 @@ def main():
     if not (DATA.exists() or DATA.is_symlink()):
         run(sys.executable, str(args.components.resolve() / 'install_candidate.py'),
             '--awg-endpoint', args.domain, '--awg-subnet', args.awg_subnet)
-    else:
-        ownership.inspect_installed(manifest)
+    installed = ownership.inspect_installed(manifest)
     ownership.root_dir(DATA, private=True)
     lock = DATA / 'preview-web.lock'
     fd = os.open(lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
     with os.fdopen(fd, 'r+') as handle:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        for directory in (WEB.parent.parent, WEB.parent):
-            directory.mkdir(mode=0o755, exist_ok=True)
-            if directory.is_symlink() or directory.stat().st_uid != 0 or directory.stat().st_mode & 0o022:
-                raise RuntimeError('untrusted web directory: ' + str(directory))
+        ensure_web_directories()
+        subscriptions = (subscription_config(DATA / 'x-ui.db', args.domain,
+                         installed['processes']['3xui-pro-fork.service']) if args.sandbox_subscriptions else None)
         publish(args.domain, port,
-                (REPO / 'assets/decoy/xonix/index.html').read_bytes(), sandbox=sandbox)
+                (REPO / 'assets/decoy/xonix/index.html').read_bytes(), sandbox=sandbox,
+                subscriptions=subscriptions)
     print('PREVIEW_INSTALLED: experimental preview; public TLS and transports are not verified.')
 
 

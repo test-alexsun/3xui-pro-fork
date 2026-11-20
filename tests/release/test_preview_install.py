@@ -1,5 +1,7 @@
 import importlib.util
 import json
+import os
+import sqlite3
 from pathlib import Path
 import sys
 import tempfile
@@ -14,6 +16,23 @@ spec.loader.exec_module(module)
 
 
 class PublishTest(unittest.TestCase):
+    @unittest.skipUnless(os.name == 'posix' and os.geteuid() == 0, 'requires root Linux fixture')
+    def test_new_web_directories_ignore_restrictive_umask_without_changing_existing(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            module.WEB = root / 'site' / 'decoy' / 'index.html'
+            mask = os.umask(0o077)
+            try:
+                module.ensure_web_directories()
+            finally:
+                os.umask(mask)
+            self.assertEqual(module.WEB.parent.parent.stat().st_mode & 0o777, 0o755)
+            self.assertEqual(module.WEB.parent.stat().st_mode & 0o777, 0o755)
+            module.WEB.parent.chmod(0o700)
+            with self.assertRaisesRegex(RuntimeError, 'not accessible'):
+                module.ensure_web_directories()
+            self.assertEqual(module.WEB.parent.stat().st_mode & 0o777, 0o700)
+
     def test_repeat_and_invalid_candidate_restore(self):
         with tempfile.TemporaryDirectory() as tmp:
             root = Path(tmp)
@@ -130,6 +149,60 @@ class PublishTest(unittest.TestCase):
                 'server { listen 127.0.0.1:18443 ssl; }']):
             with self.assertRaisesRegex(RuntimeError, 'already exists'):
                 module.sandbox_listener_available()
+
+    def test_subscription_settings_read_only_and_route_safety(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / 'panel.db'
+            with sqlite3.connect(path) as db:
+                db.execute('create table settings (key text, value text)')
+                db.executemany('insert into settings values (?,?)', [
+                    ('subEnable', 'true'), ('subListen', '127.0.0.1'),
+                    ('subPort', '12996'), ('subPath', '/synthetic/'),
+                    ('subURI', 'https://example.test:18443/synthetic/'),
+                    ('subJsonEnable', 'false'), ('subClashEnable', 'false')])
+            path.chmod(0o600)
+            before = path.read_bytes()
+            listener = 'LISTEN 0 128 127.0.0.1:12996 0.0.0.0:* users:(("x-ui",pid=42,fd=7))'
+            with mock.patch.object(module.socket, 'create_connection'), mock.patch.object(module.subprocess, 'check_output', return_value=listener):
+                route = module.subscription_config(path, 'example.test', 42)
+            with mock.patch.object(module.subprocess, 'check_output', return_value=listener):
+                with self.assertRaisesRegex(RuntimeError, 'not owned'):
+                    module.subscription_config(path, 'example.test', 43)
+            self.assertEqual(route, {'port': 12996, 'paths': ['/synthetic/']})
+            self.assertEqual(path.read_bytes(), before)
+            config = module.nginx_config('example.test', 18080, ('/cert', '/key'), route).decode()
+            self.assertIn('location ^~ /synthetic/', config)
+            self.assertIn('proxy_pass http://127.0.0.1:12996;', config)
+            self.assertIn('access_log off;', config)
+            self.assertIn('error_log /dev/null crit;', config)
+            self.assertIn('proxy_cache off;', config)
+            self.assertIn('add_header Referrer-Policy no-referrer always;', config)
+            with sqlite3.connect(path) as db:
+                db.execute("update settings set value='true' where key='subJsonEnable'")
+                db.execute("insert into settings values ('subJsonPath','/json-fixture/')")
+                db.execute("insert into settings values ('subJsonURI','https://example.test:18443/json-fixture/')")
+            with mock.patch.object(module.socket, 'create_connection'), mock.patch.object(module.subprocess, 'check_output', return_value=listener):
+                self.assertEqual(module.subscription_config(path, 'example.test', 42)['paths'], ['/synthetic/', '/json-fixture/'])
+            with sqlite3.connect(path) as db:
+                db.execute("update settings set value='/synthetic/child/' where key='subJsonPath'")
+            with self.assertRaisesRegex(RuntimeError, 'overlapping subscription paths'):
+                module.subscription_config(path, 'example.test', 42)
+            with sqlite3.connect(path) as db:
+                db.execute("update settings set value='false' where key='subJsonEnable'")
+            with sqlite3.connect(path) as db:
+                db.execute("update settings set value='' where key='subListen'")
+            with self.assertRaisesRegex(RuntimeError, 'explicitly listen'):
+                module.subscription_config(path, 'example.test', 42)
+            with sqlite3.connect(path) as db:
+                db.execute("update settings set value='127.0.0.1' where key='subListen'")
+                db.execute("update settings set value='/panel/' where key='subPath'")
+            with self.assertRaisesRegex(RuntimeError, 'reserved route'):
+                module.subscription_config(path, 'example.test', 42)
+            with sqlite3.connect(path) as db:
+                db.execute("update settings set value='/synthetic/' where key='subPath'")
+                db.execute("update settings set value='https://wrong.test/synthetic/' where key='subURI'")
+            with self.assertRaisesRegex(RuntimeError, 'explicit subscription URL'):
+                module.subscription_config(path, 'example.test', 42)
 
 
 if __name__ == '__main__':

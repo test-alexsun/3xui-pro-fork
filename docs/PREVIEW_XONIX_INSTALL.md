@@ -64,3 +64,24 @@ Do not mistake this sandbox for the intended public SNI-stream architecture.
 TCP 443 and UDP 443 are not managed by this integration; REALITY, P0/P1/P3,
 subscription routes and public TLS remain unverified. See
 `docs/stages/evidence/preview-xonix-04/test-results.md` for current results.
+
+## Optional sandbox subscription proxy
+
+When sandbox HTTPS is already configured, `--sandbox-subscriptions` adds
+explicit Nginx locations for enabled subscription formats using the panel's
+existing settings, without updating its SQLite database. The subscription
+backend must be enabled, explicitly bound to `127.0.0.1`, use plain HTTP
+locally, and already be running in the verified panel process. The panel must be configured with the exact
+sandbox subscription base URL `https://<domain>:18443/<configured-path>/`
+for each enabled format. The installer refuses missing, ambiguous, conflicting
+or differently configured values; configure the panel deliberately before
+re-running it with this option. Subscription tokens are bearer secrets and
+must not be pasted into logs, reports or public issue trackers. Nginx disables
+access logging for the managed subscription locations.
+
+The game includes an embedded favicon to prevent a browser request for the
+missing `/favicon.ico`; its gameplay is unchanged. This remains an isolated
+sandbox. Public 443 routing, REALITY, XHTTP and production TLS are not
+implemented by this option. See
+`docs/stages/evidence/preview-xonix-04a/test-results.md` for the actual scope
+of the current tests and any outstanding failures.
