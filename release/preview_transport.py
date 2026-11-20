@@ -50,7 +50,7 @@ def names(domain):
     return (domain, 'panel.' + domain, 'p0.' + domain, 'p3.' + domain)
 
 
-def stream_config(domain):
+def stream_config(domain, address=None):
     site, panel, p0, p3 = names(domain)
     return f'''# Managed by 3xui-pro-fork preview.
 stream {{
@@ -62,7 +62,7 @@ stream {{
         default 127.0.0.1:{HTTPS_PORT};
     }}
     server {{
-        listen 127.0.0.1:443;
+        listen {address or "127.0.0.1"}:443;
         ssl_preread on;
         proxy_pass $preview_backend;
     }}
@@ -101,7 +101,7 @@ server {{
     return site_routes, verify_sni(panel), defaults
 
 
-def check_available():
+def check_available(address=None):
     for path, _ in FILES.values():
         if path.exists() or path.is_symlink():
             raise RuntimeError(f'unowned transport file refused: {path}')
@@ -110,7 +110,7 @@ def check_available():
         if listeners.strip():
             raise RuntimeError(f'transport TCP {port} already has a listener')
         with socket.socket() as probe:
-            probe.bind(('127.0.0.1', port))
+            probe.bind(((address if port == 443 and address else '127.0.0.1'), port))
 
 
 def check_nginx():
@@ -122,7 +122,7 @@ def check_nginx():
         raise RuntimeError('existing nginx stream context requires manual integration')
 
 
-def new_files(domain, certificate):
+def new_files(domain, certificate, address=None, test_origin=None):
     _, _, p0, p3 = names(domain)
     cert, key = certificate
     for host in names(domain):
@@ -138,6 +138,13 @@ def new_files(domain, certificate):
               'inbounds': [], 'outbounds': [{'protocol': 'freedom', 'tag': 'direct',
               'settings': {'finalRules': [{'action': 'allow', 'network': 'tcp',
                                           'port': ORIGIN_PORT, 'ip': ['127.0.0.1/32']}]}}]}
+    if address:
+        # Public mode retains the pinned Xray private destination guard.
+        config['outbounds'][0].pop('settings')
+        if test_origin:
+            # Only an explicitly private ACME fixture gets a narrow test origin.
+            config['outbounds'][0]['settings'] = {'finalRules': [{'action': 'allow',
+                'network': 'tcp', 'port': ORIGIN_PORT, 'ip': [test_origin + '/32']}]}
     clients = {}
     for index, (profile, host) in enumerate((('P0', p0), ('P1', domain), ('P3', p3))):
         params = {'xray_version': VERSION, 'uuid': str(uuid.uuid4()), 'host': host,
@@ -153,8 +160,14 @@ def new_files(domain, certificate):
             inbound['streamSettings'].pop('tlsSettings')
             inbound['streamSettings']['security'] = 'none'
         config['inbounds'].append(inbound)
+        if address:
+            outbound = client['outbounds'][0]
+            outbound['settings']['vnext'][0]['address'] = domain
+            if profile == 'P1':
+                # The public profile uses the client's system trust.
+                outbound['streamSettings']['tlsSettings'].pop('certificates')
         clients[profile] = client
     def encode(value):
         return (json.dumps(value, indent=2) + '\n').encode()
-    return {'stream': stream_config(domain), 'unit': SERVICE,
+    return {'stream': stream_config(domain, address), 'unit': SERVICE,
             'xray': encode(config), 'clients': encode(clients)}

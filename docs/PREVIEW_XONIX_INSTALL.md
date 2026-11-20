@@ -1,8 +1,12 @@
 # XONIX preview installer
 
-This branch contains an experimental local installer, not a release. Do not
-use it on a production server. There is no published or verified GitHub
-installation command. The former `x-ui-latest.sh` installer remains disabled.
+This preview targets Debian 13 amd64 with systemd. See
+[standalone installation and IPv4 mode](#standalone-components-and-ipv4-mode)
+for the release-candidate installation, or use the isolated sandbox options
+below for local qualification. The former `x-ui-latest.sh` installer
+remains disabled. Production deployment requires separate qualification.
+
+## Local HTTP preview
 
 In a disposable Debian 13 amd64 system with systemd and TUN support, with an
 independently verified BUILD-ALL-05A candidate already unpacked into a local
@@ -146,3 +150,86 @@ Node.js and `playwright-core` and uses the installed Linux Chromium unless
 
 See [the 04B test report](stages/evidence/preview-xonix-04b/test-results.md)
 for the transport, web and repeat-install evidence and its limits.
+
+## Standalone components and IPv4 mode
+
+The installer supports Debian 13 amd64 with running systemd. With no
+`--components` argument it obtains the official upstream panel 3x-ui
+v3.11.0 and Xray v26.11.9 archives over HTTPS, checks the pinned archive
+hashes, and validates Linux amd64 ELF headers and the pinned hashes of
+the executables and geodata. It extracts amneziawg-go v3.1.20260828 and
+AWG tools v3.1.20260812 from the checked-in AWG distribution and checks
+both the package SHA-256 and each binary SHA-256. See
+[distribution provenance and licenses](../release/distribution/README.md).
+The public Nginx, Nginx common and stream packages are pinned to Debian
+Security version `1.26.3-3+deb13u11`. The installer checks each downloaded
+DEB�s SHA-256 and package metadata and refuses a different installed
+version. Certbot and other system dependencies come from configured
+signed Debian APT repositories. XONIX and the units
+come from the selected Git revision.
+
+The repository includes `bootstrap-preview.sh` for a verified GitHub
+revision. It verifies Debian 13, amd64 and root, obtains Git and Python
+from Debian if missing, fetches the exact Git object, checks its commit
+SHA, and forwards options to `install-preview.sh`. A candidate stays
+unpublished until its required isolated acceptance passes. Use the
+GitHub command from the release evidence once that evidence includes a
+verified remote SHA.
+
+For an initial IPv4 installation, use a directly assigned public address and
+create A records for the site, `panel.<domain>`, `p0.<domain>` and
+`p3.<domain>`, all pointing exclusively to that address. This mode supports
+a single direct IPv4 and refuses conflicting or AAAA answers. Ensure TCP 80
+and 443 and the selected AWG UDP port (default 29177) can reach the VPS.
+The installer does not edit host firewall rules, NAT or existing UDP 443
+configuration. Foreign transport listeners and a foreign Nginx stream
+context are refused.
+
+`--public-bind IPV4 --domain DOMAIN --acme-email EMAIL --awg-subnet CIDR`
+selects this mode. The installer brings up HTTP-01 first, checks that
+each requested name serves a challenge through Nginx, and runs Certbot
+webroot issuance for all four names with an isolated configuration at
+`/var/lib/3xui-preview-acme`. Failure leaves the HTTP-only preview and
+withholds the HTTPS transport configuration. Normal public mode uses
+Let's Encrypt. The custom private ACME flags require a private directory,
+non-public address and an explicit root-owned test CA. They are for
+disposable testing only. This mode allows Xray to reach only its
+controlled test origin at the private ACME peer on TCP 18099 in addition
+to the normal public egress. Normal mode retains Xray�s default private
+destination protection.
+
+The public ingress binds only the specified IPv4. Internal TLS (18443),
+the separate REALITY P0/P3 targets (19440 and 19443), XHTTP cleartext H2
+(19441), the REALITY destination (19444) and the panel (2053) stay on
+loopback. The site remains separate from the panel vhost. P0/P1/P3 client
+JSON is root-only and keeps its UUIDs and REALITY keys on repeat installs.
+P1 uses the client's normal certificate trust. UDP 443, P2 H3, P4 PQ and
+Hysteria2 are not provisioned by this standalone command. AWG keeps its
+existing separate NAMED service. FD_NATIVE and destructive recovery are
+outside this mode.
+
+Enable subscription proxying by first configuring the panel's verified
+loopback subscription backend and base URLs as in the TCP 443 sandbox,
+then rerunning with `--public-subscriptions`. The installer only reads
+panel subscription settings. Repeat with the same bind, domain and mode.
+Unsupported binaries and upgrades are refused. Ownership checks protect
+the existing site, state and transport files, and the web transaction
+keeps private backups under `/var/lib/3xui-pro-fork/preview-web-backups`.
+
+`3xui-preview-renew.timer` runs the isolated Certbot renewal service. Its
+deploy hook runs `nginx -t` before reloading Nginx. It does not manage
+existing Certbot lineages under `/etc/letsencrypt`. If the installer
+reports that an earlier configuration was restored, inspect the Nginx
+journal and the private backup. Do not remove unfamiliar files or treat
+`RECOVERY_REQUIRED` as proof of a successful rollback.
+
+```sh
+systemctl status nginx 3xui-preview-xray 3xui-pro-fork 3xui-pro-fork-awg
+systemctl list-timers 3xui-preview-renew.timer
+journalctl -u nginx -u 3xui-preview-xray -u 3xui-preview-renew
+nginx -t
+```
+
+[Release-candidate evidence](stages/evidence/preview-xonix-05/test-results.md)
+records the lab results. Public Let's Encrypt issuance, public renewal
+and production deployment require separate verification.

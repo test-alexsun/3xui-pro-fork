@@ -7,3 +7,6 @@ tools/*.py text eol=lf
 x-ui-latest.sh text eol=lf
 install-preview.sh text eol=lf
 tests/release/*.py text eol=lf
+bootstrap-preview.sh text eol=lf
+release/distribution/*.tar.gz -text
+release/distribution/build/* text eol=lf

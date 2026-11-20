@@ -17,12 +17,15 @@ import subprocess
 import sys
 import tempfile
 import urllib.error
+import urllib.parse
 import urllib.request
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO / 'release'))
 import install_candidate as candidate
 import preview_transport as transport
+import preview_acme as acme
+import preview_nginx_packages as nginx_packages
 import upgrade_candidate as ownership
 
 DATA = Path('/var/lib/3xui-pro-fork')
@@ -100,13 +103,14 @@ def verify_package(path):
     return manifest
 
 
-def nginx_config(domain, port, sandbox=None, subscriptions=None, transports=False):
+def nginx_config(domain, port, sandbox=None, subscriptions=None, transports=False, public_address=None):
     challenge = ('location ^~ /.well-known/acme-challenge/ { '
-                 'root /var/www/3xui-pro-fork/decoy; try_files $uri =404; }') if sandbox else ''
+                 'root /var/www/3xui-pro-fork/decoy; try_files $uri =404; }') if sandbox or public_address else ''
+    http_names = ' '.join(transport.names(domain)) if public_address else domain
     config = (f'''# Managed by 3xui-pro-fork preview; do not edit manually.
 server {{
     listen {port};
-    server_name {domain};
+    server_name {http_names};
     autoindex off;
     {challenge}
     location = / {{ root /var/www/3xui-pro-fork/decoy; try_files /index.html =404; }}
@@ -179,12 +183,13 @@ def check_http(domain, port, expected):
             raise RuntimeError('XONIX HTTP verification failed')
 
 
-def check_sandbox_https(domain, expected, certificate=None):
-    context = (ssl.create_default_context(cafile=certificate) if certificate else
+def check_sandbox_https(domain, expected, certificate=None, public_address=None):
+    verified = bool(certificate or public_address)
+    context = (ssl.create_default_context(cafile=certificate) if verified else
                ssl._create_unverified_context())  # Existing isolated 04A mode.
-    port = 443 if certificate else 18443
+    port = 443 if verified else 18443
     def get(name):
-        with socket.create_connection(('127.0.0.1', port), timeout=10) as raw:
+        with socket.create_connection((public_address or '127.0.0.1', port), timeout=10) as raw:
             with context.wrap_socket(raw, server_hostname=name) as tls:
                 tls.sendall(f'GET / HTTP/1.1\r\nHost: {name}\r\nConnection: close\r\n\r\n'.encode())
                 response = http.client.HTTPResponse(tls)
@@ -279,17 +284,18 @@ def sandbox_listener_available():
         raise RuntimeError('sandbox port 18443 is already occupied')
 
 
-def preflight_nginx(domain, port):
+def preflight_nginx(domain, port, public_address=None):
     for path in (WEB, NGINX):
         if path.exists() or path.is_symlink():
             raise RuntimeError('unowned path refused: ' + str(path))
     config = subprocess.check_output(['nginx', '-T'], stderr=subprocess.STDOUT, text=True)
     config = re.sub(r'#.*', '', config)
+    domains = transport.names(domain) if public_address else (domain,)
     for declaration in re.findall(r'\bserver_name\s+([^;]+);', config):
         for name in declaration.split():
             name = name.strip('\"\'')
             if (name.startswith(('~', '.')) or '*' in name or '$' in name or
-                    name.rstrip('.').lower() == domain.lower()):
+                    name.rstrip('.').lower() in {host.lower() for host in domains}):
                 raise RuntimeError('existing nginx server_name may conflict: ' + name)
     listeners = subprocess.check_output(['ss', '-H', '-ltnp', f'sport = :{port}'], text=True)
     if listeners.strip():
@@ -301,7 +307,8 @@ def preflight_nginx(domain, port):
             probe.bind(('0.0.0.0', port))
 
 
-def publish(domain, port, html, sandbox=None, subscriptions=None, transports=False):
+def publish(domain, port, html, sandbox=None, subscriptions=None, transports=False,
+            public_address=None, ca=None, test_origin=None):
     """Replace only files proven by the previous private state; fail closed."""
     state = None
     if STATE.exists() or STATE.is_symlink():
@@ -311,6 +318,8 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
         state = json.loads(STATE.read_text())
         if state.get('domain') != domain or state.get('port') != port or state.get('phase') != 'READY':
             raise RuntimeError('RECOVERY_REQUIRED: preview state is incomplete or differs')
+        if state.get('public_address') != public_address:
+            raise RuntimeError('public listener or mode differs from the managed state')
         if state.get('sandbox') and not sandbox:
             raise RuntimeError('existing sandbox HTTPS requires the original sandbox options')
         if state.get('subscriptions') and not subscriptions:
@@ -320,7 +329,10 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
             if digest(path.read_bytes()) != state.get(key):
                 raise RuntimeError('managed file changed externally: ' + str(path))
     else:
-        preflight_nginx(domain, port)
+        if public_address:
+            preflight_nginx(domain, port, public_address)
+        else:
+            preflight_nginx(domain, port)
     existing_transport = state.get('transport') if state else None
     if existing_transport and not transports:
         raise RuntimeError('existing transports require --sandbox-transports')
@@ -332,12 +344,17 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
         run('systemctl', 'is-active', '--quiet', transport.UNIT.name)
     additions = {}
     if transports and not existing_transport:
-        transport.check_available()
+        if public_address:
+            transport.check_available(public_address)
+        else:
+            transport.check_available()
         transport.check_nginx()
-        additions = transport.new_files(domain, sandbox)
+        additions = transport.new_files(domain, sandbox, public_address, test_origin)
     if sandbox and not transports and not (state and state.get('sandbox')):
         sandbox_listener_available()
-    newconfig = (nginx_config(domain, port, sandbox, subscriptions, transports=True) if transports else
+    newconfig = (nginx_config(domain, port, sandbox, subscriptions, transports=transports,
+                              public_address=public_address) if public_address else
+                 nginx_config(domain, port, sandbox, subscriptions, transports=True) if transports else
                  nginx_config(domain, port, sandbox, subscriptions) if subscriptions else
                  nginx_config(domain, port, sandbox) if sandbox else nginx_config(domain, port))
     oldweb = WEB.read_bytes() if state else None
@@ -377,11 +394,16 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
         check_http(domain, port, html)
         if transports:
             run('systemctl', 'is-active', '--quiet', transport.UNIT.name)
-            check_sandbox_https(domain, html, sandbox[0])
+            if public_address:
+                check_sandbox_https(domain, html, ca, public_address)
+            else:
+                check_sandbox_https(domain, html, sandbox[0])
         elif sandbox:
             check_sandbox_https(domain, html)
         ready = {'phase': 'READY', 'domain': domain, 'port': port,
                  'html': digest(html), 'nginx': digest(newconfig), 'sandbox': bool(sandbox)}
+        if public_address:
+            ready['public_address'] = public_address
         if subscriptions:
             ready['subscriptions'] = subscriptions
         if transports:
@@ -406,7 +428,9 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
             run('systemctl', 'reload', 'nginx')
             if state:
                 check_http(domain, port, oldweb)
-                if existing_transport:
+                if existing_transport and public_address:
+                    check_sandbox_https(domain, oldweb, ca, public_address)
+                elif existing_transport:
                     check_sandbox_https(domain, oldweb, sandbox[0])
                 elif state.get('sandbox'):
                     check_sandbox_https(domain, oldweb)
@@ -419,9 +443,9 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
 
 
 def main():
-    p = argparse.ArgumentParser(description=__doc__)
+    p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('--domain', required=True)
-    p.add_argument('--components', required=True, type=Path, help='unpacked verified candidate directory')
+    p.add_argument('--components', type=Path, help='local verified candidate directory; default fetches pinned components')
     p.add_argument('--awg-subnet', required=True, help='unused private IPv4 /30')
     p.add_argument('--test-mode', action='store_true', help='use isolated HTTP port 18080')
     p.add_argument('--sandbox-tls-cert', type=Path, help='root-owned test certificate, sandbox only')
@@ -429,7 +453,22 @@ def main():
     p.add_argument('--sandbox-subscriptions', action='store_true', help='proxy explicit loopback subscription settings in sandbox')
     p.add_argument('--sandbox-transports', action='store_true',
                    help='install P0/P1/P3 and SNI routing on loopback TCP 443 in a disposable VM')
+    p.add_argument('--public-bind', metavar='IPV4', help='public preview TCP 443 listener')
+    p.add_argument('--acme-email', help='required contact email for public TLS')
+    p.add_argument('--public-subscriptions', action='store_true', help='proxy explicit panel subscription settings over TCP 443')
+    p.add_argument('--acme-test-directory', help='private HTTPS ACME directory, isolated test only')
+    p.add_argument('--acme-test-ca', type=Path, help='explicit trust for private ACME and its issued TLS certificate')
     args = p.parse_args()
+    if args.public_bind:
+        if any((args.test_mode, args.sandbox_tls_cert, args.sandbox_tls_key,
+                args.sandbox_transports, args.sandbox_subscriptions)):
+            p.error('public mode and sandbox options cannot be combined')
+        if not args.acme_email or not re.fullmatch(r'[^\s@]+@[^\s@]+', args.acme_email):
+            p.error('public mode requires a valid --acme-email')
+    elif any((args.public_subscriptions, args.acme_email, args.acme_test_directory, args.acme_test_ca)):
+        p.error('public ACME and subscription options require --public-bind')
+    if bool(args.acme_test_directory) != bool(args.acme_test_ca):
+        p.error('both ACME test directory and CA are required')
     if (args.sandbox_tls_cert is None) != (args.sandbox_tls_key is None):
         raise RuntimeError('sandbox certificate and key must be provided together')
     if args.sandbox_tls_cert and not args.test_mode:
@@ -447,37 +486,81 @@ def main():
         raise RuntimeError('a valid DNS domain is required')
     if not shutil.which('systemctl') or Path('/proc/1/comm').read_text().strip() != 'systemd':
         raise RuntimeError('running systemd is required')
-    manifest = verify_package(args.components.resolve())
-    sandbox = sandbox_certificate(args.sandbox_tls_cert, args.sandbox_tls_key) if args.sandbox_tls_cert else None
-    if args.sandbox_transports and not (STATE.exists() or STATE.is_symlink()):
-        if shutil.which('ss'):
-            transport.check_available()
-    packages = [name for name, binary in (('nginx', 'nginx'), ('iproute2', 'ip'))
-                if not shutil.which(binary)]
-    if args.sandbox_transports:
-        if not transport.MODULE.is_file():
-            packages.append('libnginx-mod-stream')
-        if not shutil.which('openssl'):
-            packages.append('openssl')
-    if packages:
-        if not shutil.which('apt-get'):
-            raise RuntimeError('apt-get is required to install missing dependencies')
-        env = os.environ.copy()
-        env['DEBIAN_FRONTEND'] = 'noninteractive'
-        run('apt-get', 'update', env=env)
+    if args.public_bind:
+        if args.acme_test_ca:
+            ca = args.acme_test_ca
+            if not re.fullmatch(r'/[A-Za-z0-9_./-]+', str(ca)):
+                raise RuntimeError('test CA must be a safe absolute regular file')
+            regular(ca)
+        acme.validate_network(args.domain, args.public_bind, args.acme_test_directory, args.acme_test_ca)
+    if args.components:
+        install(args, args.components.resolve())
+    else:
+        sys.path.insert(0, str(REPO / 'tools'))
+        from fetch_preview_components import prepare
+        with tempfile.TemporaryDirectory(prefix='3xui-preview-components-') as scratch:
+            install(args, prepare(Path(scratch)))
+
+
+def install_dependencies(public, routed):
+    packages = []
+    if not shutil.which('ip') or not shutil.which('ss'):
+        packages.append('iproute2')
+    pinned_nginx = nginx_packages.missing() if public else []
+    if not public and not shutil.which('nginx'):
+        packages.append('nginx')
+    if not public and routed and not transport.MODULE.is_file():
+        packages.append('libnginx-mod-stream')
+    if routed and not shutil.which('openssl'):
+        packages.append('openssl')
+    if public and not shutil.which('certbot'):
+        packages.append('certbot')
+    if not (packages or pinned_nginx):
+        return
+    if not shutil.which('apt-get'):
+        raise RuntimeError('apt-get is required to install missing dependencies')
+    env = os.environ.copy()
+    env['DEBIAN_FRONTEND'] = 'noninteractive'
+    run('apt-get', 'update', env=env)
+    if pinned_nginx:
+        sys.path.insert(0, str(REPO / 'tools'))
+        from fetch_preview_components import download
+        with tempfile.TemporaryDirectory(prefix='3xui-preview-nginx-') as scratch:
+            directory = Path(scratch)
+            directory.chmod(0o755)
+            archives = nginx_packages.stage(directory, pinned_nginx, download)
+            run('apt-get', 'install', '-y', '--no-install-recommends', *packages, *archives, env=env)
+        if nginx_packages.missing():
+            raise RuntimeError('pinned Nginx packages did not install')
+    else:
         run('apt-get', 'install', '-y', '--no-install-recommends', *packages, env=env)
+
+
+def install(args, components):
+    manifest = verify_package(components)
+    sandbox = sandbox_certificate(args.sandbox_tls_cert, args.sandbox_tls_key) if args.sandbox_tls_cert else None
+    routed = args.sandbox_transports or bool(args.public_bind)
+    if routed and not (STATE.exists() or STATE.is_symlink()) and shutil.which('ss'):
+        transport.check_available(args.public_bind)
+    if args.public_bind:
+        for path, data, _ in acme.renewal_files(args.acme_test_ca):
+            if path.exists() or path.is_symlink():
+                regular(path)
+                if path.read_bytes() != data:
+                    raise RuntimeError(f'unowned renewal file refused: {path}')
+    install_dependencies(args.public_bind, routed)
     if not shutil.which('ss'):
         raise RuntimeError('iproute2 ss is required for listener checks')
     run('nginx', '-t')
     run('systemctl', 'start', 'nginx')
-    port = 80 if args.sandbox_transports or not args.test_mode else 18080
+    port = 80 if routed or not args.test_mode else 18080
     if not (STATE.exists() or STATE.is_symlink()):
-        preflight_nginx(args.domain, port)
-        if args.sandbox_transports:
-            transport.check_available()
+        preflight_nginx(args.domain, port, args.public_bind)
+        if routed:
+            transport.check_available(args.public_bind)
             transport.check_nginx()
     if not (DATA.exists() or DATA.is_symlink()):
-        run(sys.executable, str(args.components.resolve() / 'install_candidate.py'),
+        run(sys.executable, str(components / 'install_candidate.py'),
             '--awg-endpoint', args.domain, '--awg-subnet', args.awg_subnet)
     installed = ownership.inspect_installed(manifest)
     ownership.root_dir(DATA, private=True)
@@ -486,12 +569,34 @@ def main():
     with os.fdopen(fd, 'r+') as handle:
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         ensure_web_directories()
+        html = (REPO / 'assets/decoy/xonix/index.html').read_bytes()
         subscriptions = (subscription_config(DATA / 'x-ui.db', args.domain,
                          installed['processes']['3xui-pro-fork.service'],
-                         443 if args.sandbox_transports else 18443) if args.sandbox_subscriptions else None)
-        publish(args.domain, port,
-                (REPO / 'assets/decoy/xonix/index.html').read_bytes(), sandbox=sandbox,
-                subscriptions=subscriptions, transports=args.sandbox_transports)
+                         443 if routed else 18443) if args.sandbox_subscriptions or args.public_subscriptions else None)
+        if args.public_bind:
+            server = args.acme_test_directory or acme.DEFAULT_DIRECTORY
+            if STATE.exists() or STATE.is_symlink():
+                regular(STATE)
+                state = json.loads(STATE.read_text())
+                if state.get('public_address') != args.public_bind or state.get('domain') != args.domain:
+                    raise RuntimeError('public state belongs to another mode or identity')
+            else:
+                state = {}
+            acme.context(args.domain, args.public_bind, server, args.acme_test_ca, atomic, regular)
+            if not state.get('sandbox'):
+                publish(args.domain, port, html, public_address=args.public_bind)
+                acme.verify_http01(args.domain, args.public_bind, WEB.parent)
+                sandbox = acme.issue(args.domain, args.acme_email, server, args.acme_test_ca, WEB.parent, run)
+            else:
+                sandbox = acme.certificate()
+            publish(args.domain, port, html, sandbox=sandbox, subscriptions=subscriptions, transports=True,
+                    public_address=args.public_bind, ca=args.acme_test_ca,
+                    test_origin=(urllib.parse.urlsplit(args.acme_test_directory).hostname
+                                 if args.acme_test_directory else None))
+            acme.enable_renewal(args.acme_test_ca, atomic, regular, run)
+        else:
+            publish(args.domain, port, html, sandbox=sandbox,
+                    subscriptions=subscriptions, transports=args.sandbox_transports)
     print('PREVIEW_INSTALLED: experimental preview; public TLS is not verified.')
 
 

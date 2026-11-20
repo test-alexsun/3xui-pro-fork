@@ -4,11 +4,12 @@ const fs = require('node:fs/promises');
 const { X509Certificate } = require('node:crypto');
 const tls = require('node:tls');
 const https = require('node:https');
+const address = process.env.PREVIEW_BROWSER_ADDRESS || '127.0.0.1';
 
 function verifyLabCertificate(url, ca, expected) {
   return new Promise((resolve, reject) => {
     const socket = tls.connect({
-      host: '127.0.0.1', port: Number(url.port || 443), servername: url.hostname,
+      host: address, port: Number(url.port || 443), servername: url.hostname,
       ca, rejectUnauthorized: true,
     }, () => {
       const leaf = socket.getPeerCertificate().raw.toString('base64');
@@ -24,7 +25,7 @@ function verifyLabCertificate(url, ca, expected) {
 function checkMissingPanelRoute(url, ca, expected) {
   return new Promise((resolve, reject) => {
     const request = https.get({
-      host: '127.0.0.1', port: Number(url.port || 443), servername: url.hostname,
+      host: address, port: Number(url.port || 443), servername: url.hostname,
       headers: { Host: url.host }, path: url.pathname, ca, rejectUnauthorized: true,
     }, response => {
       try {
@@ -57,16 +58,17 @@ async function main() {
   const origin = new URL(target);
   const panel = new URL('/panel/api/preview04b-missing', origin);
   panel.hostname = 'panel.' + origin.hostname;
-  const ca = await fs.readFile(certificate);
-  const expected = new X509Certificate(ca).raw.toString('base64');
+  const leaf = await fs.readFile(certificate);
+  const ca = process.env.PREVIEW_BROWSER_CA ? await fs.readFile(process.env.PREVIEW_BROWSER_CA) : leaf;
+  const expected = new X509Certificate(leaf).raw.toString('base64');
   for (const url of [origin, panel]) await verifyLabCertificate(url, ca, expected);
   const browser = await chromium.launch({
     executablePath: process.env.CHROME_PATH || '/usr/bin/chromium',
     headless: true,
     timeout: 90000,
     args: ['--no-proxy-server',
-      '--host-resolver-rules=MAP ' + origin.hostname + ' 127.0.0.1, ' +
-      'MAP ' + panel.hostname + ' 127.0.0.1, EXCLUDE localhost'],
+      '--host-resolver-rules=MAP ' + origin.hostname + ' ' + address + ', ' +
+      'MAP ' + panel.hostname + ' ' + address + ', EXCLUDE localhost'],
   });
   try {
     const page = await browser.newPage();
