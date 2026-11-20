@@ -1,4 +1,4 @@
-# PREVIEW-XONIX-05: INCOMPLETE
+# PREVIEW-XONIX-05: PASS
 
 Date: 2026-11-20. Branch: `preview/xonix-standalone-debian13`.
 Base: `88b0f25fcd666914524c7c2d0c915a8d678e1537`. Initial worktree was clean.
@@ -25,7 +25,7 @@ the new mandatory acceptance.
 | Gate | Result |
 | --- | --- |
 | Standalone component acquisition | PASS in a Linux container with live HTTPS downloads and no local component staging. All six files matched the verifier. |
-| GitHub bootstrap | Implemented; syntax checked. Fresh install from a published SHA is pending. |
+| GitHub bootstrap | PASS. A second clean VM downloaded the published bootstrap, validated its checksum and ran the pinned Git revision. |
 | Unified regression | PASS on the pinned release inputs. 264 detected, 264 passed, zero failures, zero skips, exit 0. Historical 245/245 and preview 19/19 both exited 0. |
 | Legacy installer | PASS. Install and uninstall exit before the disabled legacy body. |
 | Syntax and whitespace | PASS. Bash syntax, Python AST (20 files), browser JavaScript syntax and Git diff check. |
@@ -53,7 +53,36 @@ Earlier VM trials stopped in fixture setup. Pebble needed an explicit
 executable mode and a longer bounded startup window to generate its CA
 under emulation. The first AWG fixture also retained its pre-restart client session and timed out. The final fixture explicitly reconnects a fresh test client. Automatic recovery of an existing session was not established.
 
-Prepublication acceptance passed on 2026-11-20. An independent clean Debian VM will verify the published GitHub installer. The overall result remains incomplete until that run succeeds.
+## Published GitHub install
+
+Release commit `d5376fc699f02bee673ecc8927ca9489b453b757` was pushed to
+`origin/preview/xonix-standalone-debian13`. The local commit and `git ls-remote`
+agreed immediately after publication. The remote and local `main` both
+remained `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`.
+
+A new disposable VM booted from the pristine Debian 13 generic cloud image.
+The read-only fixture supplied only the test client, ACME CA and comparison
+data. The VM downloaded `bootstrap-preview.sh` from GitHub Raw, checked
+SHA-256 `dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3`,
+and ran it as root against the published commit. Neither the checkout nor
+the component bundle was seeded. Both the initial and repeat installer
+invocations fetched the same pinned commit through GitHub.
+
+| Published install gate | Result |
+| --- | --- |
+| GitHub bootstrap and Debian 13 fresh install | PASS. Exact Git revision, pinned archives, active Nginx, panel, Xray and AWG services. |
+| External P0/P1/P3 | PASS. Each transport exchanged 65,536 bytes in both directions, matched its server inbound and reconnected after Xray restart. |
+| Panel API, subscriptions and XONIX over HTTPS | PASS from the separate client, including Chromium smoke. |
+| Repeat install and AWG restart | PASS. The synthetic SQLite sentinel, UUIDs, AWG and REALITY keys, TLS, units and user site survived. AWG used a fresh client handshake after service restart. |
+| Pebble HTTP-01, renewal and Nginx reload | PASS. New certificate verified over external HTTPS after the configured hook. |
+
+The command with public parameters is in the
+[installation guide](../../../PREVIEW_XONIX_INSTALL.md). The VM used the
+same GitHub path and release SHA with `--public-bind 10.77.5.1`,
+`--domain example.test`, `--acme-email rc-test@example.test`,
+`--awg-subnet 10.88.31.0/30` and the private Pebble directory and CA.
+Public Let's Encrypt issuance, public renewal and production deployment
+remain `NOT_VERIFIED`.
 
 References: [Certbot webroot and deployment hooks](https://eff-certbot.readthedocs.io/en/stable/using.html),
 [Let's Encrypt HTTP-01](https://letsencrypt.org/docs/challenge-types/).

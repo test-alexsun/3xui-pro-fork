@@ -171,10 +171,22 @@ come from the selected Git revision.
 The repository includes `bootstrap-preview.sh` for a verified GitHub
 revision. It verifies Debian 13, amd64 and root, obtains Git and Python
 from Debian if missing, fetches the exact Git object, checks its commit
-SHA, and forwards options to `install-preview.sh`. A candidate stays
-unpublished until its required isolated acceptance passes. Use the
-GitHub command from the release evidence once that evidence includes a
-verified remote SHA.
+SHA, and forwards options to `install-preview.sh`.
+
+Run the command below as root in a clean working directory. Set the public
+IPv4, domain, ACME contact and an unused RFC1918 /30 before running it.
+The pinned bootstrap was qualified after publication on a fresh Debian 13
+VM with an isolated ACME CA. See the
+[release evidence](stages/evidence/preview-xonix-05/test-results.md).
+
+```sh
+curl -fsSL 'https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/d5376fc699f02bee673ecc8927ca9489b453b757/bootstrap-preview.sh' \
+  -o bootstrap-preview.sh && \
+printf '%s  %s\n' 'dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3' bootstrap-preview.sh | sha256sum -c - && \
+sh ./bootstrap-preview.sh d5376fc699f02bee673ecc8927ca9489b453b757 \
+  --public-bind '<PUBLIC_IPV4>' --domain '<DOMAIN>' --acme-email '<EMAIL>' \
+  --awg-subnet '<UNUSED-RFC1918-/30>'
+```
 
 For an initial IPv4 installation, use a directly assigned public address and
 create A records for the site, `panel.<domain>`, `p0.<domain>` and
