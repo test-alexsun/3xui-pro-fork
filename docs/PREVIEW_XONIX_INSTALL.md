@@ -1,4 +1,4 @@
-# XONIX preview: incomplete
+# XONIX preview installer
 
 This branch contains an experimental local installer, not a release. Do not
 use it on a production server. There is no published or verified GitHub
@@ -60,9 +60,8 @@ headers. The sandbox serves existing HTTP-01 test tokens beneath
 `/var/www/3xui-pro-fork/decoy/.well-known/acme-challenge/`; it does not issue
 a certificate. A self-signed sandbox certificate was used in the VM test.
 
-Do not mistake this sandbox for the intended public SNI-stream architecture.
-TCP 443 and UDP 443 are not managed by this integration; REALITY, P0/P1/P3,
-subscription routes and public TLS remain unverified. See
+The 18443 sandbox does not use SNI stream routing or manage TCP/UDP 443.
+Use the separate loopback TCP 443 mode below for P0/P1/P3. See
 `docs/stages/evidence/preview-xonix-04/test-results.md` for current results.
 
 ## Optional sandbox subscription proxy
@@ -85,3 +84,65 @@ sandbox. Public 443 routing, REALITY, XHTTP and production TLS are not
 implemented by this option. See
 `docs/stages/evidence/preview-xonix-04a/test-results.md` for the actual scope
 of the current tests and any outstanding failures.
+
+## Optional loopback TCP 443 transport sandbox
+
+Use a **fresh disposable Debian 13 VM**. This mode needs the existing sandbox
+TLS flags and an explicitly trusted test certificate. Its SANs must cover the
+site, `panel.<domain>`, `p0.<domain>` and `p3.<domain>`. Use a root-owned
+certificate and a root-only key.
+
+```sh
+sudo bash install-preview.sh --domain example.test --test-mode \
+  --sandbox-transports --sandbox-tls-cert /path/to/test-cert.pem \
+  --sandbox-tls-key /path/to/test-key.pem \
+  --components /path/to/unpacked-candidate --awg-subnet 10.88.31.0/30
+```
+
+| Route | Listener and backend |
+| --- | --- |
+| HTTP and HTTP-01 fixture | TCP 80, Nginx site with separate ACME location |
+| Shared TLS ingress | `127.0.0.1:443`, Nginx stream reads SNI |
+| P0 | `p0.<domain>` passes through to Xray at `127.0.0.1:19440` (REALITY + XHTTP H2) |
+| P1 | Site SNI terminates TLS/H2 in Nginx at `127.0.0.1:18443`. `/xhttp/` uses HTTP/2 cleartext to Xray at `127.0.0.1:19441`. |
+| P3 | `p3.<domain>` passes through to Xray at `127.0.0.1:19443` (REALITY + Vision) |
+| XONIX / panel | Site and `panel.<domain>` have distinct HTTPS vhosts. The panel proxy goes to `127.0.0.1:2053`. |
+| REALITY destination | Separate Nginx H2/TLS endpoint at `127.0.0.1:19444`, with a fixed 404 response |
+| UDP | The transport sandbox does not use UDP 443. Candidate AWG retains its own UDP listener, normally 29177. |
+
+The HTTPS router rejects unknown SNI in a default TLS vhost. The website and
+panel vhosts also check SNI against their respective names. No leg of this
+sandbox adds a PROXY protocol header. P1 uses loopback TCP throughout and
+does not create a Unix socket.
+
+The installer installs the Debian stream module as needed and owns one stream
+include under `/etc/nginx/modules-enabled/`, one HTTP include under
+`/etc/nginx/conf.d/`, and `3xui-preview-xray.service`. It refuses an occupied
+transport TCP listener on initial installation, and it does not adopt an
+existing stream context. Debian's normal `nginx -t` includes both managed
+files. Routing is tested over loopback; the installer does not configure a
+public IPv4/IPv6 listener, firewall, Hysteria2 or ACME renewal.
+
+The dedicated Xray service stores its generated configuration and client
+profiles in root-only JSON under `/var/lib/3xui-pro-fork/`. These laboratory
+identities are separate from the panel database. Repeating the same
+invocation checks ownership and keeps the generated keys and client UUIDs.
+Client profiles connect to loopback TCP 443 and P1 verifies the supplied
+certificate. Keep these files private. Existing 04A state on HTTP 18080
+requires a separate migration and is outside this fresh-install mode.
+
+The optional subscription routes still require explicit existing panel
+settings and a verified loopback backend. Configure the base URL for each
+enabled format as `https://<domain>/<configured-path>/` and repeat the command
+with `--sandbox-subscriptions`. The older 18443 sandbox mode continues to
+require its original explicit port in configured subscription URLs.
+
+For a browser smoke inside the installed disposable VM, run
+`tests/xonix/preview04b-browser.cjs` with the HTTPS URL and test certificate
+path. It strictly validates the certificate for the site and panel hostnames
+and compares it with the certificate Chromium received. The script requires
+Node.js and `playwright-core` and uses the installed Linux Chromium unless
+`CHROME_PATH` points to another executable.
+
+See [the 04B test report](stages/evidence/preview-xonix-04b/test-results.md)
+for the transport, web and repeat-install evidence and its limits.
