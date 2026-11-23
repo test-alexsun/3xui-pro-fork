@@ -1,6 +1,6 @@
 # PREVIEW-XONIX-07 â€” off-host HTTP redirect qualification
 
-Status: LOCAL_PASS; immutable publication acceptance pending. Production deployment remains on hold.
+Status: PASS — off-host redirect qualification only. Production deployment remains on hold.
 
 Base: 8410dc9b01ef19e49844839ae4cd7b09749e48ea. The originally requested
 installer d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6 served HTTP XONIX 200
@@ -35,8 +35,9 @@ checks real HTTP responses for both domains and multiple URI/query values,
 HTTP-01, trusted HTTPS, panel/API/CSRF/cookies/WebSocket, subscription isolation
 and log secrecy, alongside P0/P1/P3, repeat, AWG, renewal and owned Nginx rollback.
 
-A new immutable installation SHA and publication acceptance will be recorded
-only after qualification. Provider/public-TLS/production acceptance is separate.
+Qualified proposed installation SHA: `8c17a4078e1e9d925b8ece9b15dbf951228767aa`.
+Provider/public-TLS/production acceptance is separate; pin replacement and
+production execution still require explicit operator approval.
 
 ## Local VM evidence
 
@@ -61,3 +62,25 @@ Browser smoke is scoped to the existing lab fixture, not the full public game
 acceptance requested for production. Public CA issuance and external production
 connectivity remain NOT_RUN. Standalone identities remain separate from panel
 customers; AWG remains server-address-only, with destructive recovery disabled.
+
+## Exact published bootstrap and 1 GiB capacity
+
+The immutable commit above was installed from GitHub in a second fresh Debian
+13 VM: 1024 MiB configured RAM, one vCPU, no swap, TMPDIR=/var/tmp, 96 MiB
+additional anonymous memory reserved. The bootstrap hash was checked before
+execution and remains:
+`dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3`.
+The bootstrap fetched and checked the exact commit; no floating branch was used.
+
+Initial install, repeat with preserved state, both redirects/URI/query,
+HTTP-01, exact two-name SAN/private-CA HTTPS, panel/API/WebSocket/subscriptions,
+P0/P1/P3 65536-byte transfers each way and reconnect/server correlation,
+AWG traffic/restart and isolated Pebble renewal/reload all passed. VM shutdown
+was normal, QEMU exit 0. Browser and fault injection were covered in the first
+local-source VM; they were not repeated in this capacity VM.
+
+Memory sampling (requested 20 Hz; shorter peaks may be missed): MemTotal
+991164 KiB, initial MemAvailable 747880 KiB, minimum 313432 KiB (306.1 MiB),
+4430 samples, OOM-kill delta 0. See memory-install-check.json. This supports the
+initial installation envelope, not long-term production concurrency capacity.
+No swap or production changes were made by this qualification.

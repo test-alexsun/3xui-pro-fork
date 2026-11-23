@@ -221,8 +221,8 @@ used as redirect authorities. The installer checks the redirect after reload,
 and rollback validates whether the previous owned state served HTTP content or
 redirects. This is separate from the panel trailing-slash redirect.
 
-The original d0cbd985 baseline did not redirect HTTP to HTTPS. Its command below
-is historical until the qualified redirect revision is published and recorded in
+The original d0cbd985 baseline did not redirect HTTP to HTTPS. The proposed corrected
+revision and its qualification are recorded in
 [redirect qualification](stages/evidence/preview-xonix-07-redirect/test-results.md).
 Do not silently change a production installation pin.
 
@@ -280,24 +280,27 @@ routes only the server tunnel address, not a full-tunnel internet gateway.
 
 Installation command and measured acceptance results are recorded in
 [PREVIEW-XONIX-06A evidence](stages/evidence/preview-xonix-06a/test-results.md).
-Use its exact immutable commit and bootstrap checksum after qualification;
-never substitute a floating branch or main. No production deployment is
+The invocation below proposes the corrected immutable redirect revision; its
+additional qualification is in the redirect evidence. Never substitute a
+floating branch or main. No production deployment is
 performed by the documentation or by the laboratory test.
 
 ### Pinned two-domain invocation
 
-The implementation commit below passed clean GitHub-install acceptance on a
-new Debian 13 VM; measured results are in the linked PREVIEW-06A evidence. Supply your own ACME email.
+The corrected implementation commit below has separate
+[redirect qualification](stages/evidence/preview-xonix-07-redirect/test-results.md).
+It is a proposed replacement for the original PREVIEW-06A installation pin.
+Supply your own ACME email; production pin replacement needs operator approval.
 Do not run on production without separate authorization.
 
 ```sh
 # Future authorized installation on de126, as root, in a clean directory.
 # Replace the email placeholder; this command has NOT run on production.
 umask 077
-curl -fsSL 'https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6/bootstrap-preview.sh' \
+curl -fsSL 'https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/8c17a4078e1e9d925b8ece9b15dbf951228767aa/bootstrap-preview.sh' \
   -o bootstrap-preview.sh && \
 printf '%s  %s\n' 'dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3' bootstrap-preview.sh | sha256sum -c - && \
-TMPDIR=/var/tmp sh ./bootstrap-preview.sh d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6 \
+TMPDIR=/var/tmp sh ./bootstrap-preview.sh 8c17a4078e1e9d925b8ece9b15dbf951228767aa \
   --public-bind '179.254.154.126' \
   --domain 'de126.alexsun55.ru' \
   --subscription-domain 'de126-sub.alexsun55.ru' \
