@@ -159,8 +159,15 @@ def nginx(domain, port, sandbox, subscriptions, address, spec):
     deny = 'location ~ (^|/)\\. { return 404; } location / { return 404; }'
     config = '# Managed by 3xui-pro-fork preview; strict two-domain mode.\n'
     for name in (domain, sub):
-        root = site_root if name == domain else ''
-        config += f'server {{ listen {port}; server_name {name}; {private_logs} if ($host != {name}) {{ return 404; }} {challenge} {root} {deny} }}\n'
+        # Keep the bootstrap HTTP page until a verified certificate is available.
+        # Once TLS is configured, retain HTTP-01 and redirect every other URI to
+        # this fixed validated hostname, never an arbitrary request authority.
+        if sandbox:
+            routes = f'location / {{ return 308 https://{name}$request_uri; }}'
+        else:
+            root = site_root if name == domain else ''
+            routes = root + ' ' + deny
+        config += f'server {{ listen {port}; server_name {name}; {private_logs} if ($host != {name}) {{ return 404; }} {challenge} {routes} }}\n'
     if not sandbox:
         return config.encode()
     cert, key = sandbox

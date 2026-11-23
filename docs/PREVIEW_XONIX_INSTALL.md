@@ -213,6 +213,19 @@ or the subscription hostname return hard errors. A private path complements
 normal authentication; it does not replace it. Initial account credentials
 remain in the root-readable panel service journal, as in the earlier preview.
 
+Strict mode initially keeps its HTTP bootstrap page while obtaining the certificate.
+After TLS is configured, both domains redirect every non-ACME HTTP URI to the
+same fixed HTTPS hostname with status 308, preserving path and query. HTTP-01
+challenge files remain directly available on HTTP. Unknown Host values are not
+used as redirect authorities. The installer checks the redirect after reload,
+and rollback validates whether the previous owned state served HTTP content or
+redirects. This is separate from the panel trailing-slash redirect.
+
+The original d0cbd985 baseline did not redirect HTTP to HTTPS. Its command below
+is historical until the qualified redirect revision is published and recorded in
+[redirect qualification](stages/evidence/preview-xonix-07-redirect/test-results.md).
+Do not silently change a production installation pin.
+
 Only the two specified names enter ACME HTTP-01 and the certificate SAN list.
 Nginx stream listens at the chosen IPv4:443 and sends both HTTPS names to
 127.0.0.1:18443. Unknown SNI is rejected by the default TLS vhost, and Host/SNI

@@ -194,6 +194,26 @@ def check_http(domain, port, expected):
     raise RuntimeError('XONIX HTTP verification failed after Nginx reload readiness wait')
 
 
+
+def check_http_redirect(domain, port):
+    """Check the exact public authority without following redirects or weakening TLS."""
+    for _ in range(30):
+        connection = http.client.HTTPConnection('127.0.0.1', port, timeout=3)
+        try:
+            connection.request('GET', '/', headers={'Host': domain})
+            response = connection.getresponse()
+            valid = response.status == 308 and response.getheader('Location') == f'https://{domain}/'
+            response.read()
+            if valid:
+                return
+        except (OSError, http.client.HTTPException):
+            pass
+        finally:
+            connection.close()
+        time.sleep(.1)
+    raise RuntimeError('HTTP to HTTPS redirect verification failed after Nginx reload')
+
+
 def check_sandbox_https(domain, expected, certificate=None, public_address=None, layout=None):
     verified = bool(certificate or public_address)
     context = (ssl.create_default_context(cafile=certificate) if verified else
@@ -409,7 +429,11 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
             starting_transport = True
             run('systemctl', 'enable', '--now', transport.UNIT.name)
         run('systemctl', 'reload', 'nginx')
-        check_http(domain, port, html)
+        if layout and sandbox:
+            for host in transport.names(domain, layout['subscription_domain']):
+                check_http_redirect(host, port)
+        else:
+            check_http(domain, port, html)
         if transports:
             run('systemctl', 'is-active', '--quiet', transport.UNIT.name)
             if public_address:
@@ -422,6 +446,8 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
                  'html': digest(html), 'nginx': digest(newconfig), 'sandbox': bool(sandbox)}
         if layout:
             ready['layout'] = layout
+            if sandbox:
+                ready['http_redirect'] = True
         if public_address:
             ready['public_address'] = public_address
         if subscriptions:
@@ -447,7 +473,13 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
             run('nginx', '-t')
             run('systemctl', 'reload', 'nginx')
             if state:
-                check_http(domain, port, oldweb)
+                # The older reviewed revision served HTTP content even with TLS.
+                # Verify the restored state's actual contract, not the new one.
+                if state.get('http_redirect') and layout:
+                    for host in transport.names(domain, layout['subscription_domain']):
+                        check_http_redirect(host, port)
+                else:
+                    check_http(domain, port, oldweb)
                 if existing_transport and public_address:
                     check_sandbox_https(domain, oldweb, ca, public_address, layout)
                 elif existing_transport:
