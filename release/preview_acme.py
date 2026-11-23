@@ -22,7 +22,7 @@ HOOK = ACME / 'renew-deploy'
 HOOK_SCRIPT = b'#!/bin/sh\nset -eu\n/usr/sbin/nginx -t\n/usr/bin/systemctl reload nginx\n'
 
 
-def validate_network(domain, address, directory, ca):
+def validate_network(domain, address, directory, ca, subscription_domain=None):
     ip = ipaddress.IPv4Address(address)
     if ip.is_loopback or ip.is_unspecified or ip.is_multicast or ip.is_link_local:
         raise RuntimeError('public mode needs a specific non-loopback unicast IPv4 address')
@@ -41,7 +41,7 @@ def validate_network(domain, address, directory, ca):
         raise RuntimeError('public ACME requires a globally routable IPv4 address')
     with socket.socket() as probe:
         probe.bind((str(ip), 0))
-    for host in names(domain):
+    for host in names(domain, subscription_domain):
         addresses = {item[4][0] for item in socket.getaddrinfo(host, 80, type=socket.SOCK_STREAM)}
         if addresses != {str(ip)}:
             raise RuntimeError(f'DNS for {host} must resolve solely to {ip}')
@@ -52,10 +52,12 @@ def dirs():
             '--logs-dir', str(ACME/'logs')]
 
 
-def context(domain, address, directory, ca, atomic, regular):
+def context(domain, address, directory, ca, atomic, regular, subscription_domain=None):
     owner = ACME / 'owner.json'
-    payload = (json.dumps({'domain': domain, 'address': address, 'server': directory,
-                           'test_ca': str(ca) if ca else None}) + '\n').encode()
+    identity = {'domain': domain, 'address': address, 'server': directory, 'test_ca': str(ca) if ca else None}
+    if subscription_domain:
+        identity['subscription_domain'] = subscription_domain
+    payload = (json.dumps(identity) + '\n').encode()
     try:
         ACME.mkdir(mode=0o700)
     except FileExistsError:
@@ -69,7 +71,7 @@ def context(domain, address, directory, ca, atomic, regular):
         atomic(owner, payload, 0o600)
 
 
-def issue(domain, email, directory, ca, webroot, run):
+def issue(domain, email, directory, ca, webroot, run, subscription_domain=None):
     env = os.environ.copy()
     for key in ('REQUESTS_CA_BUNDLE', 'CURL_CA_BUNDLE'):
         env.pop(key, None)
@@ -79,7 +81,7 @@ def issue(domain, email, directory, ca, webroot, run):
                '--email', email, '--keep-until-expiring', '--no-directory-hooks',
                '--webroot', '--webroot-path', str(webroot), '--preferred-challenges', 'http',
                '--cert-name', CERT_NAME, '--server', directory, *dirs()]
-    for host in names(domain):
+    for host in names(domain, subscription_domain):
         command.extend(('-d', host))
     run(*command, env=env)
     return certificate()
@@ -129,7 +131,7 @@ def enable_renewal(ca, atomic, regular, run):
     run('systemctl', 'enable', '--now', TIMER.name)
     run('systemctl', 'is-active', '--quiet', TIMER.name)
 
-def verify_http01(domain, address, webroot):
+def verify_http01(domain, address, webroot, subscription_domain=None):
     challenge = webroot / '.well-known/acme-challenge'
     for directory in (challenge.parent, challenge):
         try:
@@ -148,7 +150,7 @@ def verify_http01(domain, address, webroot):
             os.fchmod(file.fileno(), 0o644)
             file.write(b'3xui-preview-http01')
         opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
-        for host in names(domain):
+        for host in names(domain, subscription_domain):
             request = urllib.request.Request(
                 f'http://{address}/.well-known/acme-challenge/{Path(name).name}',
                 headers={'Host': host})
@@ -157,3 +159,10 @@ def verify_http01(domain, address, webroot):
                     raise RuntimeError(f'HTTP-01 probe failed for {host}')
     finally:
         Path(name).unlink()
+
+
+def exact_names(cert, domain, subscription_domain):
+    text = subprocess.check_output(['openssl', 'x509', '-in', cert, '-noout', '-ext', 'subjectAltName'], text=True)
+    identifiers = [x.strip() for x in text.split('\n', 1)[1].strip().split(',')]
+    if sorted(identifiers) != sorted(['DNS:' + domain, 'DNS:' + subscription_domain]):
+        raise RuntimeError('strict certificate must contain exactly the two requested DNS SANs')

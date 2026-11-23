@@ -16,6 +16,7 @@ import stat
 import subprocess
 import sys
 import tempfile
+import time
 import urllib.error
 import urllib.parse
 import urllib.request
@@ -26,6 +27,7 @@ import install_candidate as candidate
 import preview_transport as transport
 import preview_acme as acme
 import preview_nginx_packages as nginx_packages
+import preview_two_domain as two
 import upgrade_candidate as ownership
 
 DATA = Path('/var/lib/3xui-pro-fork')
@@ -103,7 +105,9 @@ def verify_package(path):
     return manifest
 
 
-def nginx_config(domain, port, sandbox=None, subscriptions=None, transports=False, public_address=None):
+def nginx_config(domain, port, sandbox=None, subscriptions=None, transports=False, public_address=None, layout=None):
+    if layout:
+        return two.nginx(domain, port, sandbox, subscriptions, public_address, layout)
     challenge = ('location ^~ /.well-known/acme-challenge/ { '
                  'root /var/www/3xui-pro-fork/decoy; try_files $uri =404; }') if sandbox or public_address else ''
     http_names = ' '.join(transport.names(domain)) if public_address else domain
@@ -176,28 +180,40 @@ server {{
 
 
 def check_http(domain, port, expected):
+    # A successful systemctl reload can precede the new Nginx workers accepting.
     opener = urllib.request.build_opener(urllib.request.ProxyHandler({}))
     request = urllib.request.Request(f'http://127.0.0.1:{port}/', headers={'Host': domain})
-    with opener.open(request, timeout=10) as response:
-        if response.status != 200 or response.read() != expected:
-            raise RuntimeError('XONIX HTTP verification failed')
+    for _ in range(30):
+        try:
+            with opener.open(request, timeout=3) as response:
+                if response.status == 200 and response.read() == expected:
+                    return
+        except (OSError, http.client.HTTPException):
+            pass
+        time.sleep(.1)
+    raise RuntimeError('XONIX HTTP verification failed after Nginx reload readiness wait')
 
 
-def check_sandbox_https(domain, expected, certificate=None, public_address=None):
+def check_sandbox_https(domain, expected, certificate=None, public_address=None, layout=None):
     verified = bool(certificate or public_address)
     context = (ssl.create_default_context(cafile=certificate) if verified else
                ssl._create_unverified_context())  # Existing isolated 04A mode.
     port = 443 if verified else 18443
-    def get(name):
+    def get(name, path='/'):
         with socket.create_connection((public_address or '127.0.0.1', port), timeout=10) as raw:
             with context.wrap_socket(raw, server_hostname=name) as tls:
-                tls.sendall(f'GET / HTTP/1.1\r\nHost: {name}\r\nConnection: close\r\n\r\n'.encode())
+                tls.sendall(f'GET {path} HTTP/1.1\r\nHost: {name}\r\nConnection: close\r\n\r\n'.encode())
                 response = http.client.HTTPResponse(tls)
                 response.begin()
                 return response.status, response.read()
     if get(domain) != (200, expected):
         raise RuntimeError('sandbox HTTPS XONIX verification failed')
-    status, panel = get('panel.' + domain)
+    if layout:
+        if get(layout['subscription_domain'])[0] != 404:
+            raise RuntimeError('subscription root must be 404')
+        status, panel = get(domain, layout['panel_path'])
+    else:
+        status, panel = get('panel.' + domain)
     if status not in (200, 301, 302, 303) or panel == expected:
         raise RuntimeError('sandbox HTTPS panel verification failed')
 
@@ -284,13 +300,13 @@ def sandbox_listener_available():
         raise RuntimeError('sandbox port 18443 is already occupied')
 
 
-def preflight_nginx(domain, port, public_address=None):
+def preflight_nginx(domain, port, public_address=None, layout=None):
     for path in (WEB, NGINX):
         if path.exists() or path.is_symlink():
             raise RuntimeError('unowned path refused: ' + str(path))
     config = subprocess.check_output(['nginx', '-T'], stderr=subprocess.STDOUT, text=True)
     config = re.sub(r'#.*', '', config)
-    domains = transport.names(domain) if public_address else (domain,)
+    domains = transport.names(domain, layout['subscription_domain'] if layout else None) if public_address else (domain,)
     for declaration in re.findall(r'\bserver_name\s+([^;]+);', config):
         for name in declaration.split():
             name = name.strip('\"\'')
@@ -308,7 +324,7 @@ def preflight_nginx(domain, port, public_address=None):
 
 
 def publish(domain, port, html, sandbox=None, subscriptions=None, transports=False,
-            public_address=None, ca=None, test_origin=None):
+            public_address=None, ca=None, test_origin=None, layout=None):
     """Replace only files proven by the previous private state; fail closed."""
     state = None
     if STATE.exists() or STATE.is_symlink():
@@ -318,6 +334,8 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
         state = json.loads(STATE.read_text())
         if state.get('domain') != domain or state.get('port') != port or state.get('phase') != 'READY':
             raise RuntimeError('RECOVERY_REQUIRED: preview state is incomplete or differs')
+        if state.get('layout') != layout:
+            raise RuntimeError('strict two-domain identity differs; migration refused')
         if state.get('public_address') != public_address:
             raise RuntimeError('public listener or mode differs from the managed state')
         if state.get('sandbox') and not sandbox:
@@ -330,7 +348,7 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
                 raise RuntimeError('managed file changed externally: ' + str(path))
     else:
         if public_address:
-            preflight_nginx(domain, port, public_address)
+            preflight_nginx(domain, port, public_address, layout)
         else:
             preflight_nginx(domain, port)
     existing_transport = state.get('transport') if state else None
@@ -345,15 +363,15 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
     additions = {}
     if transports and not existing_transport:
         if public_address:
-            transport.check_available(public_address)
+            transport.check_available(public_address, layout)
         else:
             transport.check_available()
         transport.check_nginx()
-        additions = transport.new_files(domain, sandbox, public_address, test_origin)
+        additions = transport.new_files(domain, sandbox, public_address, test_origin, layout)
     if sandbox and not transports and not (state and state.get('sandbox')):
         sandbox_listener_available()
     newconfig = (nginx_config(domain, port, sandbox, subscriptions, transports=transports,
-                              public_address=public_address) if public_address else
+                              public_address=public_address, layout=layout) if public_address else
                  nginx_config(domain, port, sandbox, subscriptions, transports=True) if transports else
                  nginx_config(domain, port, sandbox, subscriptions) if subscriptions else
                  nginx_config(domain, port, sandbox) if sandbox else nginx_config(domain, port))
@@ -395,13 +413,15 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
         if transports:
             run('systemctl', 'is-active', '--quiet', transport.UNIT.name)
             if public_address:
-                check_sandbox_https(domain, html, ca, public_address)
+                check_sandbox_https(domain, html, ca, public_address, layout)
             else:
                 check_sandbox_https(domain, html, sandbox[0])
         elif sandbox:
             check_sandbox_https(domain, html)
         ready = {'phase': 'READY', 'domain': domain, 'port': port,
                  'html': digest(html), 'nginx': digest(newconfig), 'sandbox': bool(sandbox)}
+        if layout:
+            ready['layout'] = layout
         if public_address:
             ready['public_address'] = public_address
         if subscriptions:
@@ -429,7 +449,7 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
             if state:
                 check_http(domain, port, oldweb)
                 if existing_transport and public_address:
-                    check_sandbox_https(domain, oldweb, ca, public_address)
+                    check_sandbox_https(domain, oldweb, ca, public_address, layout)
                 elif existing_transport:
                     check_sandbox_https(domain, oldweb, sandbox[0])
                 elif state.get('sandbox'):
@@ -445,6 +465,11 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
 def main():
     p = argparse.ArgumentParser(description=__doc__, allow_abbrev=False)
     p.add_argument('--domain', required=True)
+    p.add_argument('--subscription-domain', help='strict two-domain mode; automatic isolated subscription backend')
+    p.add_argument('--panel-path', help='optional private base path: one safe segment, 16-80 characters')
+    p.add_argument('--p0-port', type=int, default=8443, help='strict-mode REALITY XHTTP public TCP port')
+    p.add_argument('--p3-port', type=int, default=9443, help='strict-mode REALITY Vision public TCP port')
+    p.add_argument('--subscription-port', type=int, default=2096, help='strict-mode loopback subscription port')
     p.add_argument('--components', type=Path, help='local verified candidate directory; default fetches pinned components')
     p.add_argument('--awg-subnet', required=True, help='unused private IPv4 /30')
     p.add_argument('--test-mode', action='store_true', help='use isolated HTTP port 18080')
@@ -486,13 +511,14 @@ def main():
         raise RuntimeError('a valid DNS domain is required')
     if not shutil.which('systemctl') or Path('/proc/1/comm').read_text().strip() != 'systemd':
         raise RuntimeError('running systemd is required')
+    args.layout = two.layout(args, regular)
     if args.public_bind:
         if args.acme_test_ca:
             ca = args.acme_test_ca
             if not re.fullmatch(r'/[A-Za-z0-9_./-]+', str(ca)):
                 raise RuntimeError('test CA must be a safe absolute regular file')
             regular(ca)
-        acme.validate_network(args.domain, args.public_bind, args.acme_test_directory, args.acme_test_ca)
+        acme.validate_network(args.domain, args.public_bind, args.acme_test_directory, args.acme_test_ca, args.subscription_domain)
     if args.components:
         install(args, args.components.resolve())
     else:
@@ -537,11 +563,31 @@ def install_dependencies(public, routed):
 
 
 def install(args, components):
+    layout = args.layout
+    # Refuse old-mode adoption and changed owned files before any strict-mode mutation.
+    if layout and (STATE.exists() or STATE.is_symlink()):
+        regular(STATE)
+        old = json.loads(STATE.read_text())
+        if (old.get('layout') != layout or old.get('domain') != args.domain or
+                old.get('public_address') != args.public_bind or old.get('phase') != 'READY'):
+            raise RuntimeError('strict deployment differs from existing state; migration refused')
+        for path, key in ((WEB, 'html'), (NGINX, 'nginx')):
+            regular(path)
+            if digest(path.read_bytes()) != old.get(key):
+                raise RuntimeError('managed web file changed externally')
+        for name, (path, mode) in transport.FILES.items():
+            if old.get('transport'):
+                regular(path)
+                if path.stat().st_mode & 0o777 != mode or digest(path.read_bytes()) != old['transport'].get(name):
+                    raise RuntimeError('managed transport file changed externally')
+    fresh = not (DATA.exists() or DATA.is_symlink())
+    if layout and fresh and shutil.which('ss'):
+        two.check_subscription_port(layout)
     manifest = verify_package(components)
     sandbox = sandbox_certificate(args.sandbox_tls_cert, args.sandbox_tls_key) if args.sandbox_tls_cert else None
     routed = args.sandbox_transports or bool(args.public_bind)
     if routed and not (STATE.exists() or STATE.is_symlink()) and shutil.which('ss'):
-        transport.check_available(args.public_bind)
+        transport.check_available(args.public_bind, layout)
     if args.public_bind:
         for path, data, _ in acme.renewal_files(args.acme_test_ca):
             if path.exists() or path.is_symlink():
@@ -555,9 +601,9 @@ def install(args, components):
     run('systemctl', 'start', 'nginx')
     port = 80 if routed or not args.test_mode else 18080
     if not (STATE.exists() or STATE.is_symlink()):
-        preflight_nginx(args.domain, port, args.public_bind)
+        preflight_nginx(args.domain, port, args.public_bind, layout)
         if routed:
-            transport.check_available(args.public_bind)
+            transport.check_available(args.public_bind, layout)
             transport.check_nginx()
     if not (DATA.exists() or DATA.is_symlink()):
         run(sys.executable, str(components / 'install_candidate.py'),
@@ -570,9 +616,12 @@ def install(args, components):
         fcntl.flock(handle, fcntl.LOCK_EX | fcntl.LOCK_NB)
         ensure_web_directories()
         html = (REPO / 'assets/decoy/xonix/index.html').read_bytes()
-        subscriptions = (subscription_config(DATA / 'x-ui.db', args.domain,
+        if layout:
+            two.panel_setup(args.domain, layout, fresh, atomic, regular, lambda: ownership.inspect_installed(manifest))
+            installed = ownership.inspect_installed(manifest)
+        subscriptions = (subscription_config(DATA / 'x-ui.db', args.subscription_domain or args.domain,
                          installed['processes']['3xui-pro-fork.service'],
-                         443 if routed else 18443) if args.sandbox_subscriptions or args.public_subscriptions else None)
+                         443 if routed else 18443) if args.sandbox_subscriptions or args.public_subscriptions or layout else None)
         if args.public_bind:
             server = args.acme_test_directory or acme.DEFAULT_DIRECTORY
             if STATE.exists() or STATE.is_symlink():
@@ -582,15 +631,17 @@ def install(args, components):
                     raise RuntimeError('public state belongs to another mode or identity')
             else:
                 state = {}
-            acme.context(args.domain, args.public_bind, server, args.acme_test_ca, atomic, regular)
+            acme.context(args.domain, args.public_bind, server, args.acme_test_ca, atomic, regular, args.subscription_domain)
             if not state.get('sandbox'):
-                publish(args.domain, port, html, public_address=args.public_bind)
-                acme.verify_http01(args.domain, args.public_bind, WEB.parent)
-                sandbox = acme.issue(args.domain, args.acme_email, server, args.acme_test_ca, WEB.parent, run)
+                publish(args.domain, port, html, public_address=args.public_bind, layout=layout)
+                acme.verify_http01(args.domain, args.public_bind, WEB.parent, args.subscription_domain)
+                sandbox = acme.issue(args.domain, args.acme_email, server, args.acme_test_ca, WEB.parent, run, args.subscription_domain)
             else:
                 sandbox = acme.certificate()
+            if layout:
+                acme.exact_names(sandbox[0], args.domain, args.subscription_domain)
             publish(args.domain, port, html, sandbox=sandbox, subscriptions=subscriptions, transports=True,
-                    public_address=args.public_bind, ca=args.acme_test_ca,
+                    public_address=args.public_bind, ca=args.acme_test_ca, layout=layout,
                     test_origin=(urllib.parse.urlsplit(args.acme_test_directory).hostname
                                  if args.acme_test_directory else None))
             acme.enable_renewal(args.acme_test_ca, atomic, regular, run)

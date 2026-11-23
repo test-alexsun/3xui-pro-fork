@@ -46,11 +46,24 @@ WantedBy=multi-user.target
 '''
 
 
-def names(domain):
+def names(domain, subscription_domain=None):
+    if subscription_domain:
+        return (domain, subscription_domain)
     return (domain, 'panel.' + domain, 'p0.' + domain, 'p3.' + domain)
 
 
-def stream_config(domain, address=None):
+def stream_config(domain, address=None, layout=None):
+    if layout:
+        return f"""# Managed by 3xui-pro-fork preview; strict two-domain ingress.
+stream {{
+    map $ssl_preread_server_name $preview_backend {{
+        {domain} 127.0.0.1:{HTTPS_PORT};
+        {layout['subscription_domain']} 127.0.0.1:{HTTPS_PORT};
+        default 127.0.0.1:{HTTPS_PORT};
+    }}
+    server {{ listen {address}:443; ssl_preread on; proxy_pass $preview_backend; }}
+}}
+""".encode()
     site, panel, p0, p3 = names(domain)
     return f'''# Managed by 3xui-pro-fork preview.
 stream {{
@@ -101,16 +114,18 @@ server {{
     return site_routes, verify_sni(panel), defaults
 
 
-def check_available(address=None):
+def check_available(address=None, layout=None):
     for path, _ in FILES.values():
         if path.exists() or path.is_symlink():
             raise RuntimeError(f'unowned transport file refused: {path}')
-    for port in (443, HTTPS_PORT, COVER_PORT, *PORTS.values()):
+    ports = ((443, HTTPS_PORT, COVER_PORT, PORTS['P1'], layout['p0_port'], layout['p3_port'])
+             if layout else (443, HTTPS_PORT, COVER_PORT, *PORTS.values()))
+    for port in ports:
         listeners = subprocess.check_output(['ss', '-H', '-ltnp', f'sport = :{port}'], text=True)
         if listeners.strip():
             raise RuntimeError(f'transport TCP {port} already has a listener')
         with socket.socket() as probe:
-            probe.bind(((address if port == 443 and address else '127.0.0.1'), port))
+            probe.bind(((address if address and (port == 443 or layout and port in (layout['p0_port'], layout['p3_port'])) else '127.0.0.1'), port))
 
 
 def check_nginx():
@@ -122,10 +137,13 @@ def check_nginx():
         raise RuntimeError('existing nginx stream context requires manual integration')
 
 
-def new_files(domain, certificate, address=None, test_origin=None):
-    _, _, p0, p3 = names(domain)
+def new_files(domain, certificate, address=None, test_origin=None, layout=None):
+    if layout:
+        p0 = p3 = domain
+    else:
+        _, _, p0, p3 = names(domain)
     cert, key = certificate
-    for host in names(domain):
+    for host in names(domain, layout['subscription_domain'] if layout else None):
         subprocess.run(['openssl', 'x509', '-in', cert, '-noout', '-checkhost', host],
                        stdout=subprocess.DEVNULL, check=True)
     keys = subprocess.check_output([str(XRAY), 'x25519'], text=True)
@@ -153,7 +171,10 @@ def new_files(domain, certificate, address=None, test_origin=None):
                   'public_key': public, 'short_id': secrets.token_hex(8), 'cert': cert, 'key': key}
         server, client = render_pair(profile, params)
         inbound = server['inbounds'][0]
-        inbound['port'] = PORTS[profile]
+        profile_port = (layout['p0_port'] if profile == 'P0' else layout['p3_port'] if profile == 'P3' else 443) if layout else 443
+        inbound['port'] = profile_port if layout and profile != 'P1' else PORTS[profile]
+        if layout and profile != 'P1':
+            inbound['listen'] = address
         inbound['settings']['clients'][0]['email'] = f'preview-{profile}'
         if profile == 'P1':
             # Nginx terminates TLS; grpc_pass uses HTTP/2 cleartext to Xray.
@@ -163,11 +184,13 @@ def new_files(domain, certificate, address=None, test_origin=None):
         if address:
             outbound = client['outbounds'][0]
             outbound['settings']['vnext'][0]['address'] = domain
+            if layout:
+                outbound['settings']['vnext'][0]['port'] = profile_port
             if profile == 'P1':
                 # The public profile uses the client's system trust.
                 outbound['streamSettings']['tlsSettings'].pop('certificates')
         clients[profile] = client
     def encode(value):
         return (json.dumps(value, indent=2) + '\n').encode()
-    return {'stream': stream_config(domain, address), 'unit': SERVICE,
+    return {'stream': stream_config(domain, address, layout), 'unit': SERVICE,
             'xray': encode(config), 'clients': encode(clients)}
