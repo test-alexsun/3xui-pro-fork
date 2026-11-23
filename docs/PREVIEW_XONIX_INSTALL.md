@@ -270,3 +270,30 @@ Installation command and measured acceptance results are recorded in
 Use its exact immutable commit and bootstrap checksum after qualification;
 never substitute a floating branch or main. No production deployment is
 performed by the documentation or by the laboratory test.
+
+### Pinned two-domain invocation
+
+The implementation commit below passed clean GitHub-install acceptance on a
+new Debian 13 VM; measured results are in the linked PREVIEW-06A evidence. Supply your own ACME email.
+Do not run on production without separate authorization.
+
+```sh
+# Future authorized installation on de126, as root, in a clean directory.
+# Replace the email placeholder; this command has NOT run on production.
+umask 077
+curl -fsSL 'https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6/bootstrap-preview.sh' \
+  -o bootstrap-preview.sh && \
+printf '%s  %s\n' 'dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3' bootstrap-preview.sh | sha256sum -c - && \
+TMPDIR=/var/tmp sh ./bootstrap-preview.sh d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6 \
+  --public-bind '179.254.154.126' \
+  --domain 'de126.alexsun55.ru' \
+  --subscription-domain 'de126-sub.alexsun55.ru' \
+  --p0-port 8443 --p3-port 9443 \
+  --acme-email '<USER_LE_EMAIL>' \
+  --awg-subnet '10.88.31.0/30'
+```
+
+The current stream-to-loopback TLS leg does not forward PROXY protocol. Public
+client-IP audit or IP-allowlist semantics at the HTTP backend are not qualified;
+the peer address there is loopback. Panel authentication/CSRF and the protected
+path remain required. Qualify production IP policy separately before relying on it.

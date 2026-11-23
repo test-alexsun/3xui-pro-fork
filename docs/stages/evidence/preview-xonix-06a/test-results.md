@@ -3,8 +3,9 @@
 Date: 2026-11-23. Branch: `preview/xonix-standalone-debian13`.
 Base published HEAD: `c6285d13aa82b37995bf7ba3deda1f183f224e74`.
 
-**PREVIEW-XONIX-06A: INCOMPLETE — publication acceptance pending.**
-Final clean laboratory trial04: PASS. Published-commit installation must still complete.
+**PREVIEW-XONIX-06A: PASS.**
+Final clean laboratory trial04 and clean GitHub installation published02 both PASS.
+Acceptance completed on 2026-11-23 at approximately 05:27 UTC (11:27 Asia/Omsk).
 No production installation or public Let's Encrypt request was performed.
 
 ## Implemented architecture
@@ -92,10 +93,10 @@ published wholesale. Only nonsecret gate markers are retained with this evidence
 | AWG | PASS: handshake and bidirectional UDP, repeat after service restart with fresh client handshake; keys unchanged |
 | Pebble renewal/reload | PASS: new certificate, changed Nginx workers, validated deploy hook, exact XONIX over renewed trusted TLS |
 | Nginx recovery | PASS: deliberate invalid directive, installer failure, previous owned config restored byte-for-byte; transports and web checks still pass |
-| Browser smoke | PASS: Chromium HTTPS, exact trusted lab leaf, canvas/input, offline assets, no external requests/errors, hard 404 paths |
+| Browser smoke | PASS on both final local and GitHub-installed VMs: Chromium HTTPS, exact trusted lab leaf, canvas/input, offline assets, no external requests/errors, hard 404 paths |
 | Public Let's Encrypt / public renewal | NOT_VERIFIED; not requested on this stage |
 | Production de126 deployment | NOT_PERFORMED |
-| Published commit install | PENDING |
+| Published commit install | PASS: new pristine Debian 13 VM fetched bootstrap and exact d0cbd985 commit from GitHub; no local source/component seed; all published-install gates completed |
 
 The initial trial exposed a reload-readiness race; the installer now waits a
 bounded interval for the correct XONIX response before deciding rollback.
@@ -131,8 +132,23 @@ logs; repeated setup does not rotate account credentials or keys.
 Publication is authorized only to `preview/xonix-standalone-debian13`, without
 force push or merge. Initial local and remote main:
 `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`.
-Implementation commit, confirmed remote SHA and exact tested GitHub command
-will be recorded after successful final laboratory and publication acceptance.
+Implementation commit: `d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6`. The authorized non-force preview push
+was confirmed by `git ls-remote` at that exact SHA. Main remained
+`7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`.
+[Published implementation commit](https://github.com/test-alexsun/3xui-pro-fork/commit/d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6).
+
+The initial push used a different saved account and was rejected with 403.
+The existing authorized test-alexsun credential was then used only for the push
+process; active account/global credential configuration was not changed.
+The separate clean published02 VM passed installation, two SANs, all three
+transports and reconnect, panel/API/WebSocket/CSRF/cookies/redirect, all three
+subscription formats and negative cases, token-log checks, repeat preservation,
+AWG restart, Pebble renewal/reload and Chromium smoke. The installer Git
+revision and bootstrap hash were checked; mounted client fixtures were compared
+byte-for-byte with that same immutable commit. The first published01 attempt
+stopped before bootstrap execution because the host ISO generator wrote CRLF
+metadata. Correcting only the ignored local generator to LF and using a new
+pristine overlay resolved it; published installer code did not change.
 The bootstrap file is unchanged; SHA256 remains
 `dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3`.
 No installation command has run on de126.
@@ -162,3 +178,38 @@ Final redirect delta preview regression: 30/30 PASS in 7.638 s. The separate his
 245-test source is unchanged by that delta; the unified runner had both phases exit 0.
 The obsolete trial03 was stopped after its non-browser gates, to release RAM on
 the approximately 8 GiB host; it is not used to claim final browser acceptance.
+
+## Prepared immutable GitHub installation command
+
+The bootstrap is unchanged. Production execution still requires separate authorization,
+provider-port verification, a fresh subnet-overlap check and an operator email.
+This command uses only the two supplied domains.
+
+```sh
+# Future authorized installation on de126, as root, in a clean directory.
+# Replace the email placeholder; this command has NOT run on production.
+umask 077
+curl -fsSL 'https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6/bootstrap-preview.sh' \
+  -o bootstrap-preview.sh && \
+printf '%s  %s\n' 'dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3' bootstrap-preview.sh | sha256sum -c - && \
+TMPDIR=/var/tmp sh ./bootstrap-preview.sh d0cbd985ff10c2faf4376c7d411c50d47d1b9ee6 \
+  --public-bind '179.254.154.126' \
+  --domain 'de126.alexsun55.ru' \
+  --subscription-domain 'de126-sub.alexsun55.ru' \
+  --p0-port 8443 --p3-port 9443 \
+  --acme-email '<USER_LE_EMAIL>' \
+  --awg-subnet '10.88.31.0/30'
+```
+
+## Header and production boundaries
+
+Host/SNI isolation, generated HTTPS forwarding headers, secure cookies,
+CSRF and authenticated WebSocket behavior passed the scoped checks. As in the
+prior stream architecture, the stream-to-loopback-TLS leg does not carry PROXY
+protocol: the HTTP backend sees the loopback peer address. Original public-client
+IP audit/allowlist semantics are not qualified here and must not be assumed.
+This does not replace the panel's tested authentication/CSRF controls.
+
+Only evidence/guide text is updated after the tested implementation commit.
+The pre-existing untracked PREVIEW-06 report remains local and is not included
+in publication. Main stays unchanged. Production remains untouched.
