@@ -1,0 +1,7 @@
+{
+  "users": true,
+  "clients": true,
+  "client_inbounds": true,
+  "inbounds": true,
+  "settings": true
+}

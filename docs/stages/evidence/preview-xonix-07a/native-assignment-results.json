@@ -1,0 +1,170 @@
+{
+  "assigned_one_profile": {
+    "status": "PASS",
+    "label": "assigned_one_profile",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      }
+    ]
+  },
+  "assigned_three_profiles_with_selected_vision": {
+    "status": "PASS",
+    "label": "assigned_three_profiles_with_selected_vision",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": false
+      }
+    ]
+  },
+  "detached_subscription_has_two_profiles": {
+    "status": "PASS",
+    "label": "detached_subscription_has_two_profiles",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      }
+    ]
+  },
+  "detached_p3_fresh_access_denied": {
+    "status": "PASS",
+    "label": "detached_p3_fresh_access_denied",
+    "results": [
+      {
+        "profile": "P3",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      }
+    ]
+  },
+  "reattached_vision_works": {
+    "status": "PASS",
+    "label": "reattached_vision_works",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": false
+      }
+    ]
+  },
+  "inbound_xhttp_update_applied": {
+    "status": "PASS",
+    "label": "inbound_xhttp_update_applied",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      }
+    ]
+  },
+  "old_xhttp_path_access_denied": {
+    "status": "PASS",
+    "label": "old_xhttp_path_access_denied",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      }
+    ]
+  },
+  "inbound_xhttp_original_restored": {
+    "status": "PASS",
+    "label": "inbound_xhttp_original_restored",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": false
+      }
+    ]
+  }
+}

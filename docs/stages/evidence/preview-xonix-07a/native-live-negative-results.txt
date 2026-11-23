@@ -1,0 +1,2 @@
+{"missing_runtime_inbound": {"status": "PASS", "detected": "native runtime inbound not applied"}, "db_live_user_inconsistency": {"status": "PASS", "detected": "native DB/live client inconsistency"}}
+LIVE_NEGATIVE_GUARDS_PASS

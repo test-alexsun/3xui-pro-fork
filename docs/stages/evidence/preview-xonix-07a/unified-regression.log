@@ -1,0 +1,147 @@
+=== Historical unified regression (/src -> /work) ===
+test_create_dependencies_and_repeated_plan (transactional.test_engine.TransactionTests.test_create_dependencies_and_repeated_plan) ... ok
+test_create_does_not_overwrite_unindexed_unknown_file (transactional.test_engine.TransactionTests.test_create_does_not_overwrite_unindexed_unknown_file) ... ok
+test_delete_mode_backup_restore (transactional.test_engine.TransactionTests.test_delete_mode_backup_restore) ... ok
+test_direct_apply_and_adapter_guards (transactional.test_engine.TransactionTests.test_direct_apply_and_adapter_guards) ... ok
+test_external_database_conflict_is_preserved (transactional.test_engine.TransactionTests.test_external_database_conflict_is_preserved) ... ok
+test_external_file_conflict_is_preserved (transactional.test_engine.TransactionTests.test_external_file_conflict_is_preserved) ... ok
+test_failed_compensation_blocks_new_apply (transactional.test_engine.TransactionTests.test_failed_compensation_blocks_new_apply) ... ok
+test_failure_first_middle_last_operation (transactional.test_engine.TransactionTests.test_failure_first_middle_last_operation) ... ok
+test_inconsistent_ledger_blocks_recovery (transactional.test_engine.TransactionTests.test_inconsistent_ledger_blocks_recovery) ... ok
+test_journal_transition_partial_corruption (transactional.test_engine.TransactionTests.test_journal_transition_partial_corruption) ... ok
+test_ledger_tampering_and_generation_replay (transactional.test_engine.TransactionTests.test_ledger_tampering_and_generation_replay) ... ok
+test_managed_remove_still_blocked (transactional.test_engine.TransactionTests.test_managed_remove_still_blocked) ... ok
+test_parallel_apply_and_process_lock_release (transactional.test_engine.TransactionTests.test_parallel_apply_and_process_lock_release) ... ok
+test_partial_rollback_requires_recovery (transactional.test_engine.TransactionTests.test_partial_rollback_requires_recovery) ... ok
+test_production_paths_tokens_and_traversal (transactional.test_engine.TransactionTests.test_production_paths_tokens_and_traversal) ... ok
+test_recovery_crash_and_repeated_rollback (transactional.test_engine.TransactionTests.test_recovery_crash_and_repeated_rollback) ... ok
+test_replay_detects_drift (transactional.test_engine.TransactionTests.test_replay_detects_drift) ... ok
+test_sandbox_apply_has_no_host_or_network_calls (transactional.test_engine.TransactionTests.test_sandbox_apply_has_no_host_or_network_calls) ... ok
+test_secret_redaction_in_journal_and_cli (transactional.test_engine.TransactionTests.test_secret_redaction_in_journal_and_cli) ... ok
+test_sqlite_writer_exclusion (transactional.test_engine.TransactionTests.test_sqlite_writer_exclusion) ... ok
+test_stale_plan (transactional.test_engine.TransactionTests.test_stale_plan) ... ok
+test_symlink_and_hardlink_escape (transactional.test_engine.TransactionTests.test_symlink_and_hardlink_escape) ... ok
+test_unknown_unmanaged_remove_adopt (transactional.test_engine.TransactionTests.test_unknown_unmanaged_remove_adopt) ... ok
+test_wal_commits_backup_and_rollback (transactional.test_engine.TransactionTests.test_wal_commits_backup_and_rollback) ... ok
+test_wal_crash_preserves_committed_cut (transactional.test_engine.TransactionTests.test_wal_crash_preserves_committed_cut) ... ok
+
+----------------------------------------------------------------------
+Ran 245 tests in 352.412s
+
+OK
+=== Current preview regression (/preview) ===
+test_inner_unfragmented_datagram_can_still_exceed_outer_path (test_awg_pmtu.AwgPMTUContracts.test_inner_unfragmented_datagram_can_still_exceed_outer_path) ... ok
+test_invalid_bounds_are_refused (test_awg_pmtu.AwgPMTUContracts.test_invalid_bounds_are_refused) ... ok
+test_measured_baseline_encapsulation_lengths (test_awg_pmtu.AwgPMTUContracts.test_measured_baseline_encapsulation_lengths) ... ok
+test_measured_pmtu_and_s4_derive_client_only_mtu (test_awg_pmtu.AwgPMTUContracts.test_measured_pmtu_and_s4_derive_client_only_mtu) ... ok
+test_no_user_payload_is_accepted_as_synthetic_probe (test_awg_pmtu.AwgPMTUContracts.test_no_user_payload_is_accepted_as_synthetic_probe) ... ok
+test_prescribed_probe_sizes_and_synthetic_payload_boundaries (test_awg_pmtu.AwgPMTUContracts.test_prescribed_probe_sizes_and_synthetic_payload_boundaries) ... ok
+test_s4_changes_are_included_not_assumed_zero (test_awg_pmtu.AwgPMTUContracts.test_s4_changes_are_included_not_assumed_zero) ... ok
+test_external_managed_writer_is_refused (test_backup_candidate.CandidateBackup.test_external_managed_writer_is_refused) ... ok
+test_online_snapshot_and_tamper_refusal (test_backup_candidate.CandidateBackup.test_online_snapshot_and_tamper_refusal) ... ok
+test_bootstrap_keeps_http_content_until_tls_exists (test_http_https_redirect.RedirectContracts.test_bootstrap_keeps_http_content_until_tls_exists) ... ok
+test_readiness_rejects_different_redirect_authority (test_http_https_redirect.RedirectContracts.test_readiness_rejects_different_redirect_authority) ... ok
+test_readiness_waits_for_redirect_worker (test_http_https_redirect.RedirectContracts.test_readiness_waits_for_redirect_worker) ... ok
+test_rollback_preserves_previous_http_content_contract (test_http_https_redirect.RedirectContracts.test_rollback_preserves_previous_http_content_contract) ... ok
+test_rollback_validates_previous_redirect_contract (test_http_https_redirect.RedirectContracts.test_rollback_validates_previous_redirect_contract) ... ok
+test_tls_redirects_fixed_two_authorities_and_preserves_http01 (test_http_https_redirect.RedirectContracts.test_tls_redirects_fixed_two_authorities_and_preserves_http01) ... ok
+test_install_and_uninstall_refuse_before_legacy_body (test_legacy_installer.LegacyInstallerTest.test_install_and_uninstall_refuse_before_legacy_body) ... ok
+test_ambiguous_source_customer_refused_without_regenerating_uuid (test_panel_inbounds.NativeBlueprintContracts.test_ambiguous_source_customer_refused_without_regenerating_uuid) ... ok
+test_duplicate_listener_refused_before_api (test_panel_inbounds.NativeBlueprintContracts.test_duplicate_listener_refused_before_api) ... ok
+test_missing_or_unqualified_protocol_refused (test_panel_inbounds.NativeBlueprintContracts.test_missing_or_unqualified_protocol_refused) ... ok
+test_p1_native_loopback_and_subscription_tls443_h2_override (test_panel_inbounds.NativeBlueprintContracts.test_p1_native_loopback_and_subscription_tls443_h2_override) ... ok
+test_preserves_real_uuid_private_key_short_id_and_listener (test_panel_inbounds.NativeBlueprintContracts.test_preserves_real_uuid_private_key_short_id_and_listener) ... ok
+test_raw_alias_becomes_native_tcp_with_vision_preserved (test_panel_inbounds.NativeBlueprintContracts.test_raw_alias_becomes_native_tcp_with_vision_preserved) ... ok
+test_shared_identity_is_one_native_customer_attached_to_three (test_panel_inbounds.NativeBlueprintContracts.test_shared_identity_is_one_native_customer_attached_to_three) ... ok
+test_vision_is_never_silently_downgraded (test_panel_inbounds.NativeBlueprintContracts.test_vision_is_never_silently_downgraded) ... ok
+test_duplicate_profile_id_is_not_an_owned_registry (test_panel_inbounds.NativeJournalContracts.test_duplicate_profile_id_is_not_an_owned_registry) ... ok
+test_ready_requires_three_positive_integer_registry_ids (test_panel_inbounds.NativeJournalContracts.test_ready_requires_three_positive_integer_registry_ids) ... ok
+test_unknown_version_or_phase_fails_closed (test_panel_inbounds.NativeJournalContracts.test_unknown_version_or_phase_fails_closed) ... ok
+test_disabled_client_must_be_absent_from_real_core (test_panel_inbounds.NativeLiveContracts.test_disabled_client_must_be_absent_from_real_core) ... ok
+test_expired_client_is_absent_from_core (test_panel_inbounds.NativeLiveContracts.test_expired_client_is_absent_from_core) ... ok
+test_live_reality_key_drift_is_refused_even_when_db_is_correct (test_panel_inbounds.NativeLiveContracts.test_live_reality_key_drift_is_refused_even_when_db_is_correct) ... ok
+test_live_validation_uses_xray_users_not_stale_generated_file (test_panel_inbounds.NativeLiveContracts.test_live_validation_uses_xray_users_not_stale_generated_file) ... ok
+test_live_xhttp_path_drift_is_refused_even_when_db_is_correct (test_panel_inbounds.NativeLiveContracts.test_live_xhttp_path_drift_is_refused_even_when_db_is_correct) ... ok
+test_missing_native_inbound_refused (test_panel_inbounds.NativeLiveContracts.test_missing_native_inbound_refused) ... ok
+test_p1_public_subscription_override_drift_is_refused (test_panel_inbounds.NativeLiveContracts.test_p1_public_subscription_override_drift_is_refused) ... ok
+test_real_client_addition_is_preserved_and_validated (test_panel_inbounds.NativeLiveContracts.test_real_client_addition_is_preserved_and_validated) ... ok
+test_wrong_listener_owner_refused (test_panel_inbounds.NativeLiveContracts.test_wrong_listener_owner_refused) ... ok
+test_wrong_live_security_refused (test_panel_inbounds.NativeLiveContracts.test_wrong_live_security_refused) ... ok
+test_pending_web_transaction_validates_native_against_previous_ready_state (test_panel_inbounds.NativePublicationContracts.test_pending_web_transaction_validates_native_against_previous_ready_state) ... ok
+test_existing_standalone_requires_separate_explicit_opt_in (test_panel_inbounds.NativeSelectionContracts.test_existing_standalone_requires_separate_explicit_opt_in) ... ok
+test_fresh_opt_in_and_ready_repeat_are_distinct (test_panel_inbounds.NativeSelectionContracts.test_fresh_opt_in_and_ready_repeat_are_distinct) ... ok
+test_no_automatic_reversal_of_native_deployment (test_panel_inbounds.NativeSelectionContracts.test_no_automatic_reversal_of_native_deployment) ... ok
+test_nonterminal_journal_fails_before_any_api_mutation (test_panel_inbounds.NativeSelectionContracts.test_nonterminal_journal_fails_before_any_api_mutation) ... ok
+test_errors_do_not_reveal_token_or_private_path (test_panel_inbounds.PanelAPIContracts.test_errors_do_not_reveal_token_or_private_path) ... ok
+test_loopback_only_and_form_content_type (test_panel_inbounds.PanelAPIContracts.test_loopback_only_and_form_content_type) ... ok
+test_operation_traversal_refused (test_panel_inbounds.PanelAPIContracts.test_operation_traversal_refused) ... ok
+test_redirect_handler_refuses_credential_forwarding (test_panel_inbounds.PanelAPIContracts.test_redirect_handler_refuses_credential_forwarding) ... ok
+test_first_publication_failure_keeps_recovery_required (test_preview_install.PublishTest.test_first_publication_failure_keeps_recovery_required) ... ok
+test_new_web_directories_ignore_restrictive_umask_without_changing_existing (test_preview_install.PublishTest.test_new_web_directories_ignore_restrictive_umask_without_changing_existing) ... ok
+test_nginx_conflicts_fail_closed (test_preview_install.PublishTest.test_nginx_conflicts_fail_closed) ... ok
+test_repeat_and_invalid_candidate_restore (test_preview_install.PublishTest.test_repeat_and_invalid_candidate_restore) ... ok
+test_sandbox_is_loopback_and_fail_closed_on_repeat (test_preview_install.PublishTest.test_sandbox_is_loopback_and_fail_closed_on_repeat) ... ok
+test_sandbox_rejects_occupied_port (test_preview_install.PublishTest.test_sandbox_rejects_occupied_port) ... ok
+test_subscription_settings_read_only_and_route_safety (test_preview_install.PublishTest.test_subscription_settings_read_only_and_route_safety) ... ok
+test_unowned_and_changed_files_are_refused (test_preview_install.PublishTest.test_unowned_and_changed_files_are_refused) ... ok
+test_foreign_tcp_listener_is_refused_before_creating_any_file (test_preview_transport.PreviewTransportContracts.test_foreign_tcp_listener_is_refused_before_creating_any_file) ... ok
+test_sni_routes_to_distinct_backends_and_rejects_unknown_handshakes (test_preview_transport.PreviewTransportContracts.test_sni_routes_to_distinct_backends_and_rejects_unknown_handshakes) ... ok
+test_missing_packages_and_exact_package_metadata (test_standalone_preview.PinnedNginxContracts.test_missing_packages_and_exact_package_metadata) ... ok
+test_preserves_existing_different_nginx_version (test_standalone_preview.PinnedNginxContracts.test_preserves_existing_different_nginx_version) ... ok
+test_acme_requires_exact_dns_and_refuses_test_net_for_public_ca (test_standalone_preview.StandaloneContracts.test_acme_requires_exact_dns_and_refuses_test_net_for_public_ca) ... /usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4002020>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f40013f0>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4002980>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f40027a0>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4002890>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4001f30>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4001e40>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4002110>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4002200>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f40022f0>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4002a70>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+/usr/lib/python3.13/unittest/mock.py:2247: ResourceWarning: unclosed database in <sqlite3.Connection object at 0x76e3f4002b60>
+  def __init__(self, name, parent):
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+ok
+test_awg_archive_checks_both_members_and_rejects_tampering (test_standalone_preview.StandaloneContracts.test_awg_archive_checks_both_members_and_rejects_tampering) ... ok
+test_public_listener_keeps_private_backends_and_http01_names (test_standalone_preview.StandaloneContracts.test_public_listener_keeps_private_backends_and_http01_names) ... ok
+test_renewal_uses_isolated_lineage_and_nginx_validation (test_standalone_preview.StandaloneContracts.test_renewal_uses_isolated_lineage_and_nginx_validation) ... ok
+test_aaaa_and_conflicting_a_are_refused (test_two_domain_preview.TwoDomainContracts.test_aaaa_and_conflicting_a_are_refused) ... ok
+test_cli_rejects_colliding_ports_domains_and_paths (test_two_domain_preview.TwoDomainContracts.test_cli_rejects_colliding_ports_domains_and_paths) ... ok
+test_dedicated_subscription_vhost_has_no_panel_or_game (test_two_domain_preview.TwoDomainContracts.test_dedicated_subscription_vhost_has_no_panel_or_game) ... ok
+test_exact_certificate_rejects_extra_san (test_two_domain_preview.TwoDomainContracts.test_exact_certificate_rejects_extra_san) ... ok
+test_existing_unowned_panel_is_not_adopted (test_two_domain_preview.TwoDomainContracts.test_existing_unowned_panel_is_not_adopted) ... ok
+test_only_two_acme_identifiers_and_dns_queries (test_two_domain_preview.TwoDomainContracts.test_only_two_acme_identifiers_and_dns_queries) ... ok
+test_panel_path_reused_and_identity_change_refused (test_two_domain_preview.TwoDomainContracts.test_panel_path_reused_and_identity_change_refused) ... ok
+test_profiles_keep_protocols_with_one_hostname_and_distinct_ports (test_two_domain_preview.TwoDomainContracts.test_profiles_keep_protocols_with_one_hostname_and_distinct_ports) ... ok
+test_public_reality_port_conflict_refused (test_two_domain_preview.TwoDomainContracts.test_public_reality_port_conflict_refused) ... ok
+test_reload_waits_for_new_worker_response (test_two_domain_preview.TwoDomainContracts.test_reload_waits_for_new_worker_response) ... ok
+test_repeat_refuses_settings_drift_without_api_or_cli_mutation (test_two_domain_preview.TwoDomainContracts.test_repeat_refuses_settings_drift_without_api_or_cli_mutation) ... ok
+
+----------------------------------------------------------------------
+Ran 73 tests in 0.557s
+
+OK
+Historical exit: 0; preview exit: 0

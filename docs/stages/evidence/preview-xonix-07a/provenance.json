@@ -1,0 +1,24 @@
+{
+  "status": "PASS",
+  "date": "2026-11-23",
+  "branch": "preview/xonix-standalone-debian13",
+  "baseline_commit": "6f990e251149fc9b73bcee279def93b307a413d6",
+  "implementation_commit": "a3a6b991eb21dc2b4822c4fae13426d91e19db48",
+  "github_implementation_push_confirmed": true,
+  "main_before": "7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661",
+  "main_after_implementation_push": "7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661",
+  "production_installed_revision_unchanged": "8c17a4078e1e9d925b8ece9b15dbf951228767aa",
+  "production_migration_performed": false,
+  "awg_runtime_changed": false,
+  "unified_regression": {
+    "historical": 245,
+    "preview": 73,
+    "total": 318,
+    "status": "PASS"
+  },
+  "tested_source_manifest": "tested-source-sha256.json",
+  "bootstrap_sha256": "dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3",
+  "github_exact_revision_bootstrap_repeat": "PASS",
+  "post_publication_starter_64k_each_direction_each_profile": "PASS",
+  "native_pid_and_client_subscription_ids_preserved_by_published_repeat": true
+}
