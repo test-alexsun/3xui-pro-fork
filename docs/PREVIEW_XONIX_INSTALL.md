@@ -313,3 +313,158 @@ The current stream-to-loopback TLS leg does not forward PROXY protocol. Public
 client-IP audit or IP-allowlist semantics at the HTTP backend are not qualified;
 the peer address there is loopback. Panel authentication/CSRF and the protected
 path remain required. Qualify production IP policy separately before relying on it.
+
+## Opt-in native panel management (PREVIEW-XONIX-07A)
+
+The default standalone mode above is retained for compatibility. In strict
+two-domain mode, `--panel-inbounds` selects real panel ownership of P0/P1/P3.
+A fresh installation needs that flag from its first invocation. An existing
+standalone installation additionally requires `--migrate-panel-inbounds`.
+Use the exact reviewed 07A commit from its evidence report; the historical
+8c17a407 pin above does not contain this feature. This stage does not authorize
+running migration on production.
+
+The installer imports through the supported 3x-ui 3.11.0 API. SQLite/API become
+the source of current inbounds, customers and subscription identities. The
+panel's single Xray child owns 8443, loopback 19441 and 9443; Nginx continues to
+own public 443. The separate standalone Xray is stopped and disabled only after
+staging the replacement. No listeners run concurrently on the same port.
+Neither the panel nor Xray binary is patched.
+
+| Native tag | Actual listener | Public subscription |
+|---|---|---|
+| VLESS-REALITY-XHTTP-H2 | selected IPv4:8443 | main domain:8443, REALITY, XHTTP H2 |
+| VLESS-TLS-XHTTP-H2 | 127.0.0.1:19441 | main domain:443, TLS, XHTTP H2 |
+| VLESS-REALITY-VISION | selected IPv4:9443 | main domain:9443, REALITY, Vision |
+
+P1 uses native external Host/Proxy metadata to advertise TLS/SNI/ALPN h2 on
+443 while its real backend remains cleartext H2. P3 uses the equivalent native
+TCP alias for raw so the panel retains Vision flow. REALITY private keys,
+public keys, short IDs, target, SNI, XHTTP host/path and existing UUIDs are
+preserved. Imported starter identities receive new private panel subscription
+IDs because standalone starters had no panel subscription. Existing panel
+customers/subscription IDs are not replaced or adopted on conflicts.
+
+In **Clients → Add Clients**, enter an email, select one or more attached
+inbounds, then open **Credentials**. If P3 is selected, set **Flow** to
+`xtls-rprx-vision` before creating the client. The panel applies this flow only
+where supported; P0/P1 remain XHTTP without Vision flow. Use the generated
+subscription on the subscription domain. Disable/delete denies new
+connections; forced termination of already established streams is not claimed.
+
+After cutover, `preview-xray.json` and `preview-xray-clients.json` are preserved
+root-only **pre-migration snapshots**, not current customer exports. Do not
+edit them to manage native customers or distribute them as current panel
+subscriptions. Use the native API/UI and subscription service. Native gRPC
+user changes can be newer than `panel/bin/config.json`; live Xray API users
+and traffic are checked rather than assuming that generated file is current.
+
+Repeat with identical strict-mode parameters and `--panel-inbounds`. It checks
+API/DB and live listener ownership, users, keys and transports, and preserves
+panel-created/edited customers. It does not reimport the old starter snapshot.
+Omitting the native flag after cutover is refused. Layout/key changes made in
+the panel are not silently overwritten: this release refuses installer repeat
+if the three fixed ingress identities differ. Plan such ingress changes
+separately; ordinary customer CRUD and attachment remain native panel actions.
+
+### Handoff safety and recovery
+
+Before staging, the installer verifies the exact installed component tuple,
+owned units/files, standalone PID generation and port owners, source hashes,
+and absence of conflicting native tags, ports, emails or UUIDs. It creates a
+consistent SQLite backup with integrity check and an unchanged web-state
+snapshot under root-only `preview-panel-migration-backups/before-*`.
+The root-only journal `preview-panel-inbounds.json` records created IDs and
+each transition. Staged inbounds remain disabled until the old process has
+stopped and all three listeners have been released.
+
+Activation restarts the panel once to compile authoritative SQLite state and
+checks actual Xray listeners, identities, transport keys and active users.
+Only a successful check marks READY and disables the old unit. An ordinary
+handoff failure disables/removes only the recorded staged records, preserves
+unrelated panel data, waits for ports to be released and restores the old
+owned service/web state. This scoped rollback has been tested with a real
+Xray configuration rejection and preserved unrelated test customers.
+
+An ambiguous side effect, changed ownership or incomplete journal yields
+`RECOVERY_REQUIRED`; stop and inspect the private journal/backup. Do not
+delete the journal, repeat blindly, start a second listener, or restore the
+whole old database over newly created customers. Power-loss recovery and
+automatic reversal of a completed READY migration are not implemented.
+After READY, any reverse migration needs a separate plan preserving current
+native clients and subscriptions, plus explicit authorization.
+
+### Separate production migration plan
+
+1. Review the 07A evidence and exact candidate SHA. Obtain separate production
+   authorization and a maintenance window: the handoff interrupts existing
+   connections and restarts the panel. Keep an independent SSH session open.
+2. Repeat read-only checks of installed pin, ownership, DNS, RAM/disk, backups,
+   current clients, listeners and public reachability. Check that the original
+   two-domain state is READY. Stop on conflict or RECOVERY_REQUIRED.
+3. Store a separate root-only consistent backup of SQLite, managed state,
+   transport/customer snapshots, certificates, units and Nginx configurations;
+   verify archive contents/checksums and SQLite integrity. Retain the previously
+   verified off-host backup. Do not publish any of these files.
+4. Download and verify the pinned bootstrap. Use the existing two domains,
+   bind, ports, /30 and ACME email, with `TMPDIR=/var/tmp`,
+   `--panel-inbounds --migrate-panel-inbounds`. Reuse the existing protected
+   panel path from local state. Do not change DNS, SSH, firewall or AWG MTU.
+5. Accept only READY plus actual native listener/users/crypto checks, original
+   starter connectivity, UI-created customer connectivity, correct raw/JSON/
+   Clash subscriptions, 64 KiB each direction on all three profiles, negative
+   fresh-connection tests, XONIX/HTTPS, AWG and renewal timer checks. Monitor
+   memory/OOM and logs. No production fault injection is part of this plan.
+6. On a normal failed handoff verify ROLLED_BACK, original listeners and old
+   client traffic. On RECOVERY_REQUIRED stop changes and provide diagnosis;
+   retain every backup and do not start competing processes. After a completed
+   migration retain the old snapshots as recovery evidence; reverting later
+   must account for all customers added/edited since cutover.
+
+### Client-path PMTU diagnosis
+
+07A measured an external IPv4 path PMTU of 1440 with S4=12. Its actual AWG
+overhead is 72 bytes, so the tested client-only TUN MTU is **1368**. At MTU
+1420, unfragmented inner payload 1350 already produces outer IP size 1464;
+larger fragmented inner datagrams produce a lost first outer packet. The
+observed loss is oversized DF outer packets with missing feedback to the
+container, not demonstrated outer-fragment loss or a blocked UDP port.
+
+Every prescribed size 64–2048 passed both ways with only the external test
+client set to 1368. The server/runtime/default MTU remains unchanged. Apply
+an MTU override only on a compatible client after measuring its own path;
+another path, S4 or IPv6 may require a different value. Interface MTU belongs
+to the client interface/profile manager, not `awg setconf`. Rollback restores
+that client's previous setting. See the 07A evidence for bounded captures,
+calculations, restart/key-preservation results and remaining uncertainty.
+
+### Reproducing 07A laboratory gates
+
+Use a disposable Debian 13 VM only. `tests/release/preview07a_vm.sh` is the
+fresh native variant of the existing cloud-init/Pebble seed fixture. The seed
+contains the reviewed source archive, pinned Pebble archive and browser
+dependencies as in the 07 fixture. No public ACME or production DNS change is
+performed. The private namespace bind must be 10.77.5.1; the scripts refuse the
+production address. Stage the reviewed source at `/tmp/preview07a-src`.
+
+Run `preview07a_native_smoke.py`, then `preview07a_customer_setup.py` and
+`preview07a_native_acceptance.py`. `preview07a_assignment_updates.py` tests
+one/multiple attachments and actual XHTTP path changes. Run Chromium's
+`tests/xonix/preview07a-panel.cjs` in `preview-client` with `NODE_PATH` pointing
+to Playwright, then `preview07a_ui_data.py` to exercise its created customer's
+real subscriptions. `preview07a_negative_live.py` deliberately removes only
+lab runtime state and restores it with a panel restart.
+
+`preview07a_rollback_vm.py` requires the minimal native fixture with only its
+three imported customers/inbounds; run it separately before the exposure
+smoke fixture adds its own extra inbound. It returns the lab to standalone,
+adds an unrelated test customer, tests a conflicting port, injects an invalid
+REALITY key and checks real Xray rejection/scoped rollback/old client traffic.
+Never run this fault exercise on production. `preview07a_pmtu_vm.py` creates
+three disposable namespaces with route MTU 1440 and lab-only lost ICMP
+feedback, runs the whole matrix, restarts both AWG peers and checks keys.
+
+All private configs, subscription snapshots and client logs stay root-only in
+the VM. Public evidence contains only structural results and synthetic traffic
+sizes. The existing `run_preview_regression.sh` still runs all historical
+tests and discovers all new preview unit tests.

@@ -28,6 +28,7 @@ import preview_transport as transport
 import preview_acme as acme
 import preview_nginx_packages as nginx_packages
 import preview_two_domain as two
+import preview_panel_inbounds as native
 import upgrade_candidate as ownership
 
 DATA = Path('/var/lib/3xui-pro-fork')
@@ -344,7 +345,7 @@ def preflight_nginx(domain, port, public_address=None, layout=None):
 
 
 def publish(domain, port, html, sandbox=None, subscriptions=None, transports=False,
-            public_address=None, ca=None, test_origin=None, layout=None):
+            public_address=None, ca=None, test_origin=None, layout=None, panel_managed=False):
     """Replace only files proven by the previous private state; fail closed."""
     state = None
     if STATE.exists() or STATE.is_symlink():
@@ -379,7 +380,10 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
             regular(path)
             if path.stat().st_mode & 0o777 != mode or digest(path.read_bytes()) != existing_transport.get(name):
                 raise RuntimeError('managed transport file changed externally: ' + str(path))
-        run('systemctl', 'is-active', '--quiet', transport.UNIT.name)
+        if panel_managed:
+            native.verify_ready()
+        else:
+            run('systemctl', 'is-active', '--quiet', transport.UNIT.name)
     additions = {}
     if transports and not existing_transport:
         if public_address:
@@ -435,7 +439,10 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
         else:
             check_http(domain, port, html)
         if transports:
-            run('systemctl', 'is-active', '--quiet', transport.UNIT.name)
+            if panel_managed:
+                native.verify_ready(web_state=state)
+            else:
+                run('systemctl', 'is-active', '--quiet', transport.UNIT.name)
             if public_address:
                 check_sandbox_https(domain, html, ca, public_address, layout)
             else:
@@ -448,6 +455,8 @@ def publish(domain, port, html, sandbox=None, subscriptions=None, transports=Fal
             ready['layout'] = layout
             if sandbox:
                 ready['http_redirect'] = True
+        if panel_managed:
+            ready['panel_managed_inbounds'] = True
         if public_address:
             ready['public_address'] = public_address
         if subscriptions:
@@ -502,6 +511,8 @@ def main():
     p.add_argument('--p0-port', type=int, default=8443, help='strict-mode REALITY XHTTP public TCP port')
     p.add_argument('--p3-port', type=int, default=9443, help='strict-mode REALITY Vision public TCP port')
     p.add_argument('--subscription-port', type=int, default=2096, help='strict-mode loopback subscription port')
+    p.add_argument('--panel-inbounds', action='store_true', help='strict native panel ownership of real P0/P1/P3')
+    p.add_argument('--migrate-panel-inbounds', action='store_true', help='explicit opt-in handoff of an existing standalone installation')
     p.add_argument('--components', type=Path, help='local verified candidate directory; default fetches pinned components')
     p.add_argument('--awg-subnet', required=True, help='unused private IPv4 /30')
     p.add_argument('--test-mode', action='store_true', help='use isolated HTTP port 18080')
@@ -544,6 +555,7 @@ def main():
     if not shutil.which('systemctl') or Path('/proc/1/comm').read_text().strip() != 'systemd':
         raise RuntimeError('running systemd is required')
     args.layout = two.layout(args, regular)
+    native.requested(args)
     if args.public_bind:
         if args.acme_test_ca:
             ca = args.acme_test_ca
@@ -596,6 +608,7 @@ def install_dependencies(public, routed):
 
 def install(args, components):
     layout = args.layout
+    panel_managed = native.requested(args)
     # Refuse old-mode adoption and changed owned files before any strict-mode mutation.
     if layout and (STATE.exists() or STATE.is_symlink()):
         regular(STATE)
@@ -641,6 +654,8 @@ def install(args, components):
         run(sys.executable, str(components / 'install_candidate.py'),
             '--awg-endpoint', args.domain, '--awg-subnet', args.awg_subnet)
     installed = ownership.inspect_installed(manifest)
+    if panel_managed:
+        native.verify_ready()
     ownership.root_dir(DATA, private=True)
     lock = DATA / 'preview-web.lock'
     fd = os.open(lock, os.O_CREAT | os.O_RDWR | os.O_NOFOLLOW, 0o600)
@@ -675,8 +690,11 @@ def install(args, components):
             publish(args.domain, port, html, sandbox=sandbox, subscriptions=subscriptions, transports=True,
                     public_address=args.public_bind, ca=args.acme_test_ca, layout=layout,
                     test_origin=(urllib.parse.urlsplit(args.acme_test_directory).hostname
-                                 if args.acme_test_directory else None))
+                                 if args.acme_test_directory else None), panel_managed=panel_managed)
             acme.enable_renewal(args.acme_test_ca, atomic, regular, run)
+            if getattr(args, 'panel_inbounds', False) and not panel_managed:
+                native.migrate(manifest, atomic, test_origin=(urllib.parse.urlsplit(args.acme_test_directory).hostname
+                    if args.acme_test_directory else None))
         else:
             publish(args.domain, port, html, sandbox=sandbox,
                     subscriptions=subscriptions, transports=args.sandbox_transports)
