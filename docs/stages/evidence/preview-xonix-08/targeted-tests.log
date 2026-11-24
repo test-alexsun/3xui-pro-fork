@@ -1,0 +1,11 @@
+test_disabled_database_row_still_reserves_port (test_vpn_inbounds.VpnGuards.test_disabled_database_row_still_reserves_port) ... ok
+test_existing_journal_is_not_overwritten_by_plan (test_vpn_inbounds.VpnGuards.test_existing_journal_is_not_overwritten_by_plan) ... ok
+test_existing_socket_is_refused_before_staging (test_vpn_inbounds.VpnGuards.test_existing_socket_is_refused_before_staging) ... ok
+test_production_apply_refused_even_if_marker_present (test_vpn_inbounds.VpnGuards.test_production_apply_refused_even_if_marker_present) ... ok
+test_public_ip_refused_even_with_lab_flag (test_vpn_inbounds.VpnGuards.test_public_ip_refused_even_with_lab_flag) ... ok
+test_reserved_awg_port_never_assigned_to_wireguard (test_vpn_inbounds.VpnGuards.test_reserved_awg_port_never_assigned_to_wireguard) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 0.019s
+
+OK

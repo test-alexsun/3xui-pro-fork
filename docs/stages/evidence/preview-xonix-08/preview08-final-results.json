@@ -1,0 +1,37 @@
+{
+  "status": "FAIL",
+  "scope": "disposable Debian13 native panel",
+  "protocols": {
+    "WIREGUARD": {
+      "initial": "PASS",
+      "after_restart": "PASS",
+      "disabled": "PASS",
+      "reenabled": "PASS",
+      "deleted": "PASS",
+      "recreated": "PASS",
+      "final_listener": "PASS"
+    },
+    "AMNEZIAWG-3.1": {
+      "initial": "FAIL",
+      "after_restart": "FAIL",
+      "disabled": "FAIL",
+      "reenabled": "FAIL",
+      "deleted": "FAIL",
+      "recreated": "FAIL",
+      "final_listener": "PASS"
+    },
+    "HYSTERIA2": {
+      "initial": "FAIL",
+      "after_restart": "FAIL",
+      "disabled": "FAIL",
+      "reenabled": "FAIL",
+      "deleted": "FAIL",
+      "recreated": "FAIL",
+      "final_listener": "PASS"
+    }
+  },
+  "existing_native_preserved": "PASS",
+  "panel_six_records": "PASS",
+  "tcp_payload_bytes_per_direction": 65536,
+  "udp_payload_bytes_per_direction": 8192
+}
