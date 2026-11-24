@@ -12,6 +12,7 @@
 | Историческая регрессия (07A) | `318/318 PASS` (сохранена без пересборки) |
 | Unit & contract suites (Debian 13 Docker) | `tests/release` **79/79 OK**, `tests/protocols` **69 (66 OK, 3 E2E skipped)**, `tests/integration` **15 (14 OK, 1 E2E skipped)** |
 | Чистая Debian 13 VM приёмка (PREVIEW-XONIX-08) | **PASS**: fresh install (`READY`/`READY`), safe repeat (`preserved_exact_identity: true`), P0/P1/P3 + XONIX + VLESS subs, независимые E2E `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`, одновременная работа и изоляция всех 6, Playwright Chromium UI (6 Inbounds + 6 Clients), HTTP `308`, SQLite `ok`, OOM `0` |
+| Опубликованный implementation commit | `2191f391de54c43a7702380a4afc5ee2943b4486` (обычный push в `preview/xonix-standalone-debian13`; последующий metadata commit фиксирует этот hash) |
 
 ## Что реализовано и подтверждено
 

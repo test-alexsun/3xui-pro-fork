@@ -10,8 +10,8 @@
 ## Обязательные 23 пункта отчёта
 
 1. **Исходный commit**: `4c5ebd98f434723c1f424dbb4e50de3709ef1463` (на ветке `preview/xonix-standalone-debian13`; implementation baseline `a3a6b991eb21dc2b4822c4fae13426d91e19db48`; предыдущая 08 lab-база `2f275b6be69531eed80cdbcab5015369782afc43`).
-2. **Финальный commit**: фиксируется после публикации implementation commit в `preview/xonix-standalone-debian13` (хеши исходников — [source-sha256.json](source-sha256.json); в этом файле не указывается несуществующий/додуманный hash текущего или будущего коммита).
-3. **Remote HEAD**: проверяется после обычного `git push origin preview/xonix-standalone-debian13` с подтверждением неизменности `origin/main` = `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`.
+2. **Финальный commit**: проверенный implementation/evidence commit `2191f391de54c43a7702380a4afc5ee2943b4486` (хеши исходников — [source-sha256.json](source-sha256.json); следующий docs-only metadata commit фиксирует данный опубликованный hash).
+3. **Remote HEAD**: обычный fast-forward push в `origin/preview/xonix-standalone-debian13` проверен через `git ls-remote origin` (`2191f391de54c43a7702380a4afc5ee2943b4486` для implementation commit, далее docs-only commit поверх него; `origin/main` неизменен на `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`).
 4. **Результаты оркестрации**: соблюдена схема parallel → sequential → unified Debian 13 VM acceptance → docs & security review. Работа продолжена без создания новых серий этапов (`08A`, `09`).
 5. **Работа каждого субагента**:
    - *VLESS & UI Engineer*: проверил совместимость `preview_panel_inbounds.py` с 6-inbound строками и реализовал Playwright-набор [preview08-six-inbounds-panel.cjs](../../../../tests/xonix/preview08-six-inbounds-panel.cjs).
