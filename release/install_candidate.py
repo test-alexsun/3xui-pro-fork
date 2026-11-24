@@ -45,6 +45,8 @@ def main():
     parser.add_argument('--awg-endpoint', help='client-reachable IPv4 address or DNS name')
     parser.add_argument('--awg-subnet', help='unused private IPv4 /30 for the AWG peer pair')
     parser.add_argument('--awg-port', type=int, default=29177)
+    parser.add_argument('--no-standalone-awg', action='store_true',
+                        help='skip standalone AWG service/config creation when panel manages embedded AWG 3.1')
     args = parser.parse_args()
     if os.geteuid() != 0 or platform.machine() != 'x86_64':
         raise RuntimeError('requires root and amd64')
@@ -74,32 +76,37 @@ def main():
         return
     if args.health_credentials is not None:
         raise RuntimeError('health credentials are only used for prepare-upgrade')
-    if args.awg_endpoint is None or args.awg_subnet is None:
-        raise RuntimeError('fresh installation requires --awg-endpoint and --awg-subnet')
     if not shutil.which('ip') or not Path('/dev/net/tun').is_char_device():
         raise RuntimeError('iproute2 and /dev/net/tun are required')
     status = dict(line.split(':', 1) for line in Path('/proc/self/status').read_text().splitlines() if ':' in line)
     if not int(status['CapEff'].strip(), 16) & (1 << 12):
         raise RuntimeError('CAP_NET_ADMIN is required')
-    if not 1 <= args.awg_port <= 65535:
-        raise RuntimeError('invalid AWG UDP port')
-    if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]{0,252}', args.awg_endpoint) or '..' in args.awg_endpoint:
-        raise RuntimeError('invalid AWG endpoint hostname')
-    subnet = ipaddress.ip_network(args.awg_subnet, strict=True)
-    if subnet.version != 4 or subnet.prefixlen != 30 or not any(subnet.subnet_of(ipaddress.ip_network(x)) for x in
-            ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')):
-        raise RuntimeError('a dedicated private IPv4 /30 is required')
-    routes = json.loads(subprocess.check_output(['ip', '-j', '-4', 'route', 'show', 'table', 'all'], text=True))
-    for route in routes:
-        dst = route.get('dst', 'default')
-        if dst != 'default' and subnet.overlaps(ipaddress.ip_network(dst, strict=False)):
-            raise RuntimeError('AWG subnet overlaps a local route')
-    try:
-        socket.if_nametoindex('xproawg0')
-    except OSError:
-        pass
+    subnet = None
+    if args.no_standalone_awg:
+        if args.awg_endpoint is not None or args.awg_subnet is not None or args.awg_port != 29177:
+            raise RuntimeError('standalone AWG options cannot be combined with --no-standalone-awg')
     else:
-        raise RuntimeError('AWG interface name already exists')
+        if args.awg_endpoint is None or args.awg_subnet is None:
+            raise RuntimeError('fresh installation requires --awg-endpoint and --awg-subnet')
+        if not 1 <= args.awg_port <= 65535:
+            raise RuntimeError('invalid AWG UDP port')
+        if not re.fullmatch(r'[A-Za-z0-9][A-Za-z0-9.-]{0,252}', args.awg_endpoint) or '..' in args.awg_endpoint:
+            raise RuntimeError('invalid AWG endpoint hostname')
+        subnet = ipaddress.ip_network(args.awg_subnet, strict=True)
+        if subnet.version != 4 or subnet.prefixlen != 30 or not any(subnet.subnet_of(ipaddress.ip_network(x)) for x in
+                ('10.0.0.0/8', '172.16.0.0/12', '192.168.0.0/16')):
+            raise RuntimeError('a dedicated private IPv4 /30 is required')
+        routes = json.loads(subprocess.check_output(['ip', '-j', '-4', 'route', 'show', 'table', 'all'], text=True))
+        for route in routes:
+            dst = route.get('dst', 'default')
+            if dst != 'default' and subnet.overlaps(ipaddress.ip_network(dst, strict=False)):
+                raise RuntimeError('AWG subnet overlaps a local route')
+        try:
+            socket.if_nametoindex('xproawg0')
+        except OSError:
+            pass
+        else:
+            raise RuntimeError('AWG interface name already exists')
     check_components(ROOT)
     for path in (PREFIX, DATA, LOG, UNIT, AWG_UNIT, Path('/etc/x-ui'), Path('/usr/local/x-ui'),
                  Path('/etc/systemd/system/x-ui.service')):
@@ -109,8 +116,9 @@ def main():
         raise RuntimeError('at least 512 MiB free space required')
     with socket.socket() as probe:
         probe.bind(('127.0.0.1', 2053))
-    with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
-        probe.bind(('0.0.0.0', args.awg_port))
+    if not args.no_standalone_awg:
+        with socket.socket(socket.AF_INET, socket.SOCK_DGRAM) as probe:
+            probe.bind(('0.0.0.0', args.awg_port))
     os.umask(0o077)
     PREFIX.mkdir(mode=0o700)
     DATA.mkdir(mode=0o700)
@@ -132,19 +140,27 @@ def main():
             raise RuntimeError('panel loopback settings verification failed')
         if db.execute('PRAGMA integrity_check').fetchone() != ('ok',):
             raise RuntimeError('SQLite integrity check failed')
-    run(sys.executable, str(PREFIX / 'awg/config_candidate.py'), '--awg', str(PREFIX / 'awg/awg'),
-        '--output', str(DATA / 'awg'), '--endpoint-host', args.awg_endpoint, '--port', str(args.awg_port),
-        '--subnet', str(subnet))
+    if not args.no_standalone_awg:
+        run(sys.executable, str(PREFIX / 'awg/config_candidate.py'), '--awg', str(PREFIX / 'awg/awg'),
+            '--output', str(DATA / 'awg'), '--endpoint-host', args.awg_endpoint, '--port', str(args.awg_port),
+            '--subnet', str(subnet))
     shutil.copyfile(ROOT / '3xui-pro-fork.service', UNIT)
     shutil.copyfile(ROOT / '3xui-pro-fork-awg.service', AWG_UNIT)
     UNIT.chmod(0o644)
     AWG_UNIT.chmod(0o644)
     run('systemctl', 'daemon-reload')
-    for service in (UNIT, AWG_UNIT):
-        run('systemctl', 'enable', '--now', service.name)
-        run('systemctl', 'is-active', '--quiet', service.name)
-    print('Candidate panel service started on loopback. Initial credentials are in its root-readable journal.')
-    print('AWG client configuration is root-only under /var/lib/3xui-pro-fork/awg/client.conf.')
+    if args.no_standalone_awg:
+        run('systemctl', 'enable', '--now', UNIT.name)
+        run('systemctl', 'is-active', '--quiet', UNIT.name)
+        run('systemctl', 'disable', AWG_UNIT.name)
+        print('Candidate panel service started on loopback. Initial credentials are in its root-readable journal.')
+        print('Standalone AWG unit left disabled/inactive for native panel-managed embedded AWG 3.1.')
+    else:
+        for service in (UNIT, AWG_UNIT):
+            run('systemctl', 'enable', '--now', service.name)
+            run('systemctl', 'is-active', '--quiet', service.name)
+        print('Candidate panel service started on loopback. Initial credentials are in its root-readable journal.')
+        print('AWG client configuration is root-only under /var/lib/3xui-pro-fork/awg/client.conf.')
     print('Upgrade and rollback are not implemented; do not use as a production release.')
 
 

@@ -1,69 +1,75 @@
 # Архитектура preview
 
-Документ описывает исходники preview, не объявляет шестипротокольную приёмку. Версии и ограничения: [PROJECT_STATUS](PROJECT_STATUS.md), [PROTOCOLS](PROTOCOLS.md).
+Документ описывает завершённую шестипротокольную архитектуру Debian 13 preview (`PREVIEW-XONIX-08`). Сведения о статусе и ограничениях: [PROJECT_STATUS](PROJECT_STATUS.md), решения: [DECISIONS](DECISIONS.md), протокольные контракты: [PROTOCOLS](PROTOCOLS.md).
 
 ```mermaid
 flowchart LR
     U[Клиент] --> N[Nginx IPv4 TCP 443]
-    N --> W[XONIX / HTTPS]
-    N --> P[3x-ui loopback 2053]
-    N --> S[Подписки loopback 2096]
-    N --> H[P1 XHTTP loopback 19441]
-    U --> R[P0 TCP 8443 / P3 TCP 9443]
-    P --> D[(SQLite)]
-    P --> X[Единственный Xray child]
+    N -->|"main domain /"| W[XONIX / HTTPS]
+    N -->|"main domain /<panel_path>/"| P["3x-ui 3.11.0 (127.0.0.1:2053)"]
+    N -->|"sub domain (/sub,/json,/clash)"| S["Подписки (127.0.0.1:2096)"]
+    N -->|"main domain /xhttp/"| H["P1 XHTTP loopback 19441"]
+    U -->|"TCP 8443 / 9443"| R["P0 / P3 (xray-linux-amd64)"]
+    U -->|"UDP 51820"| WG["WIREGUARD (xray-linux-amd64)"]
+    U -->|"UDP 24443"| HY["HYSTERIA2 TLS/h3 (xray-linux-amd64)"]
+    U -->|"UDP 29177"| AWG["AMNEZIAWG-3.1 embedded amneziawgnet (x-ui MainPID)"]
+    AWG -->|"127.0.0.1:<socks_port> (SOCKS5 password-auth)"| X["Единственный Xray child (26.11.9)"]
+    P --> D[("SQLite /var/lib/3xui-pro-fork/x-ui.db")]
+    P --> X
     X --- H
-    X --- R
-    U --> A[AWG UDP 29177]
-    A --> T[amneziawg-go / named TUN]
 ```
 
-## Границы компонентов
+## Границы компонентов и runtime ownership
 
-`install-preview.sh` вызывает `release/preview_install.py`. `bootstrap-preview.sh` получает точный Git commit. `preview_install.py` проверяет Debian/systemd, manifests, binaries и owned state; `preview_two_domain.py` задаёт строгий layout двух имён. `preview_transport.py` и `preview_profiles.py` строят транспортные конфигурации. `preview_panel_inbounds.py` импортирует только P0/P1/P3 через `preview_panel_api.py`.
+- **Bootstrap и orchestration**: [bootstrap-preview.sh](../bootstrap-preview.sh) загружает и проверяет точный 40-hex Git commit; [install-preview.sh](../install-preview.sh) вызывает [preview_install.py](../release/preview_install.py).
+- **Web, ACME и VLESS transport layout**: [preview_two_domain.py](../release/preview_two_domain.py) формирует строгий two-domain layout (`main` + `subscription`); [preview_acme.py](../release/preview_acme.py) выпускает и обновляет SAN-сертификат в `/var/lib/3xui-preview-acme`; [preview_transport.py](../release/preview_transport.py) готовит pre-migration baseline P0/P1/P3 (loopback `19444` используется как fallback/cover для REALITY).
+- **Candidate installation и file ownership**: [install_candidate.py](../release/install_candidate.py) проверяет Debian 13 amd64 / systemd / SHA256 pinned binaries и раскладывает бинарники в `/opt/3xui-pro-fork`. В 6-inbound режиме передаётся `--no-standalone-awg`: `3xui-pro-fork-awg.service` копируется и остаётся disabled/inactive, а `/30` standalone-конфигурация в `/var/lib/3xui-pro-fork/awg/` не создаётся (режим `--vless-only` сохраняет прежнюю standalone-схему). [upgrade_candidate.py](../release/upgrade_candidate.py) проверяет SHA256 pinned-компонентов, unit-файлов и фактических `/proc/<pid>/exe`.
+- **Native P0/P1/P3 provisioning**: [preview_panel_inbounds.py](../release/preview_panel_inbounds.py) через [preview_panel_api.py](../release/preview_panel_api.py) импортирует `VLESS-REALITY-XHTTP-H2` (TCP `8443`), `VLESS-TLS-XHTTP-H2` (`127.0.0.1:19441` за Nginx `443`) и `VLESS-REALITY-VISION` (TCP `9443`), сохраняя состояние в root-only журнале `preview-panel-inbounds.json` и останавливая standalone `3xui-preview-xray.service`.
+- **Шестипротокольная VPN-оркестрация**: [preview_vpn_inbounds.py](../release/preview_vpn_inbounds.py) объединяет три полностью независимых протокольных модуля:
+  - [preview_wireguard.py](../release/preview_wireguard.py) — обычный WireGuard (`WIREGUARD`, UDP `51820`, `noKernelTun: true`, pure-Python RFC 7748 X25519, владелец UDP-сокета `xray-linux-amd64`);
+  - [preview_amneziawg31.py](../release/preview_amneziawg31.py) — AmneziaWG 3.1 (`AMNEZIAWG-3.1`, UDP `29177`, `kernelMode: false`, embedded `amneziawgnet` внутри `x-ui` MainPID, ретрансляция в Xray через loopback password-auth SOCKS5 inbound `127.0.0.1:<port>`);
+  - [preview_hysteria2.py](../release/preview_hysteria2.py) — Hysteria2 v2 (`HYSTERIA2`, UDP `24443`, `network: hysteria`, TLS `h3` с переиспользованием existing two-domain ACME-сертификата, владелец UDP-сокета `xray-linux-amd64`).
 
-Панель 3.11.0 владеет клиентами и assignments в `/var/lib/3xui-pro-fork/x-ui.db`. Unit задаёт `XUI_DB_FOLDER`; не следует искать database по стандартному upstream пути `/etc/x-ui`.
+| Inbound tag | Протокол | Порт / bind по умолчанию | Владелец сокета | Подсеть / транспорт |
+|---|---|---|---|---|
+| `VLESS-REALITY-XHTTP-H2` | `vless` | TCP `8443` (`--p0-port`) | `xray-linux-amd64` | REALITY + XHTTP H2 |
+| `VLESS-TLS-XHTTP-H2` | `vless` | Public TCP `443` → `127.0.0.1:19441` | `nginx` → `xray-linux-amd64` | Let's Encrypt TLS + H2 `externalProxy` |
+| `VLESS-REALITY-VISION` | `vless` | TCP `9443` (`--p3-port`) | `xray-linux-amd64` | raw/`tcp` REALITY Vision |
+| `WIREGUARD` | `wireguard` | UDP `51820` (`--wg-port`) | `xray-linux-amd64` | RFC1918 `10.89.8.0/24` (`--wg-subnet`), `noKernelTun: true`, MTU `1420` |
+| `AMNEZIAWG-3.1` | `amneziawg` | UDP `29177` (`--awg-port`) | `x-ui` MainPID → Xray SOCKS5 | RFC1918 `10.88.32.0/24` (`--awg-subnet`), `kernelMode: false`, HPK + AWG 3.1 obfuscation, MTU `1420` |
+| `HYSTERIA2` | `hysteria` | UDP `24443` (`--hy2-port`) | `xray-linux-amd64` | v2 QUIC/TLS ALPN `h3`, two-domain ACME cert |
 
-P1: Nginx TLS/H2 → cleartext H2 loopback 19441. Native external proxy metadata публикует клиентам корректные domain:443, TLS/SNI/ALPN. P0 и P3 идут непосредственно в Xray через фиксированные public TCP порты. REALITY destination — отдельный local TLS/H2 endpoint 19444 с ответом 404. Третий домен и PROXY headers не требуются.
+## Источники истины и разделение режимов
 
-AWG 3.1 — отдельный `3xui-pro-fork-awg.service`, supervisor `awg_service.py`, interface `xproawg0`. Он создаёт эксклюзивный named TUN, передаёт descriptor закреплённому amneziawg-go, применяет `server.setconf` через `awg setconf`. Не подключается к существующему интерфейсу и не удаляет его по имени. Сложные FD_NATIVE namespace эксперименты из исторической ветки в этот production runtime не перенесены.
-
-WireGuard и Hysteria2 отсутствуют в current installer lifecycle. Наличие старого генератора или upstream имени протокола не обеспечивает UI/backend/client management. Архитектурное расширение должно связать SQLite/API, runtime, peer lifecycle и export; декоративные строки недопустимы.
-
-Optional `preview_vpn_inbounds.py` PREVIEW-08 отделён от installer: read-only plan проверяет native READY и actual UDP owners; apply ограничен disposable lab/RFC1918 и специальным marker. Explicit lab AWG handoff освобождает29177 перед embedded activation. Новый private manifest `preview-vpn-inbounds.json` отделён от existing native READY и отмечает `CONFIGURED_NOT_ACCEPTED` до реального traffic acceptance. Ошибка даёт `RECOVERY_REQUIRED`, не автоматический restore старой DB. Сверяйте final evidence для фактически проверенного результата utility.
-
-## Владение и источники истины
-
-| Данные | Владелец и источник истины |
+| Артефакт / данные | Владелец и назначение |
 |---|---|
-| VLESS inbound, clients, subscriptions | Native panel API + SQLite |
-| Runtime users | Xray API/живой трафик; generated config может отставать от gRPC изменений |
-| Fixed ingress identity | Owned state + проверенные panel settings; повтор installer отказывает при несовпадении |
-| AWG keys/peer | Private `/var/lib/3xui-pro-fork/awg/` |
-| Web/layout | Private `preview-web.json`, managed Nginx files |
-| Panel setup credential | Private `preview-panel.json`; не публиковать содержимое |
-| Migration ownership | Private `preview-panel-inbounds.json` |
-| TLS | Isolated Certbot config/work/log под `/var/lib/3xui-preview-acme` |
-| XONIX | `assets/decoy/xonix/index.html`; high score в localStorage браузера |
+| `/var/lib/3xui-pro-fork/x-ui.db` | Единственный источник истины SQLite (`XUI_DB_FOLDER`) для всех 6 inbounds, клиентов и подписок |
+| Live Xray core (`/opt/3xui-pro-fork/panel/bin/config.json` + gRPC API) | Активные inbounds/users в runtime; для `AMNEZIAWG-3.1` пересоздание Xray SOCKS5-аккаунтов происходит на ~30-секундном reconcile-тике |
+| `/var/lib/3xui-pro-fork/preview-web.json`, Nginx include | Owned web/two-domain layout и ACME metadata |
+| `/var/lib/3xui-pro-fork/preview-panel.json` | Root-only setup/credential state (не публиковать) |
+| `/var/lib/3xui-pro-fork/preview-panel-inbounds.json` | Fail-closed журнал native P0/P1/P3 migration (`phase: READY`) |
+| `/var/lib/3xui-pro-fork/preview-vpn-inbounds.json` | Fail-closed журнал 6-inbound VPN provisioning (`version: 2`, `phase: READY`) |
+| `/var/lib/3xui-pro-fork/awg/` | Конфигурация standalone `3xui-pro-fork-awg.service` только в `--vless-only` или на unmutated production `de126` |
+| `/var/lib/3xui-preview-acme/` | Изолированный Certbot config/work/log для SAN-сертификата двух доменов |
+| `assets/decoy/xonix/index.html` | Статический decoy XONIX (`/` основного домена, high score в browser `localStorage`) |
 
-После READY `preview-xray.json` и `preview-xray-clients.json` — сохранённые pre-migration snapshots, не текущие экспорты клиентов. Не редактировать их для управления клиентами.
+После `READY` файлы `preview-xray.json` и `preview-xray-clients.json` служат только pre-migration snapshots для диагностики/recovery.
 
-## Миграция
+## State machine двух журналов миграции
 
 ```mermaid
 stateDiagram-v2
     [*] --> PREPARING
-    PREPARING --> STAGING
-    STAGING --> STAGED
-    STAGED --> STOPPING_STANDALONE
-    STOPPING_STANDALONE --> ACTIVATING_NATIVE
-    ACTIVATING_NATIVE --> READY
-    STAGING --> ROLLING_BACK
-    ACTIVATING_NATIVE --> ROLLING_BACK
-    ROLLING_BACK --> ROLLED_BACK
-    ROLLING_BACK --> RECOVERY_REQUIRED
+    PREPARING --> STAGING_TAG: "P0/P1/P3 или WIREGUARD/AMNEZIAWG-3.1/HYSTERIA2"
+    STAGING_TAG --> STAGED_TAG
+    STAGED_TAG --> STOPPING_STANDALONE: "standalone active + explicit handoff"
+    STAGED_TAG --> ACTIVATING: "fresh --no-standalone-awg"
+    STOPPING_STANDALONE --> ACTIVATING
+    ACTIVATING --> READY: "listeners, owners, keys, subnets verified"
+    STAGING_TAG --> RECOVERY_REQUIRED: "error"
+    ACTIVATING --> RECOVERY_REQUIRED: "error"
 ```
 
-Это иллюстрация нормального handoff и известных failure paths, не полный формальный автомат. Неоднозначное состояние на любом шаге требует ручной диагностики. Сначала staged inbound disabled, затем освобождение портов standalone, затем активация native. READY устанавливается после проверок владельцев listeners, keys, clients и транспорта. Автоматического перехода READY → rollback нет.
+Оба журнала (`preview-panel-inbounds.json` и `preview-vpn-inbounds.json`) работают по принципу fail-closed: после достижения `READY` автоматический rollback или повторное усыновление запрещены, а `RECOVERY_REQUIRED` требует ручной диагностики с сохранением backups ([RECOVERY](RECOVERY.md)).
 
-Systemd supervises panel, AWG, Nginx и renewal timer. Standalone `3xui-preview-xray.service` после native handoff inactive/disabled. Два процесса не должны владеть одинаковыми endpoint. Все изменения ownership требуют сохранения ключей и отдельно проверенного плана.
+**Production vs Lab**: production VPS `de126` (`179.254.154.126`) не изменялся и остаётся на 3 VLESS (`READY`) + отдельной службе `3xui-pro-fork-awg.service` на UDP `29177`. Автоматическое отключение production AWG без явных `--add-vpn-inbounds --handoff-standalone-awg` и отдельного разрешения запрещено.

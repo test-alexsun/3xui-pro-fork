@@ -4,8 +4,8 @@ description: "Read when choosing checks, creating acceptance evidence or interpr
 ---
 # Проверки
 
-Reuse confirmed historical evidence for unchanged components. Historical318/318PASS belongs to07A, not a new run. WG/HY2 checks in other projects/branches/fixtures do not prove this preview integration.
+Reuse confirmed historical evidence for unchanged components. Historical `318/318 PASS` belongs strictly to PREVIEW-XONIX-07A, and `PASS_CORE_PAIR` belongs to the separate historical core-pair harness — never conflate them with PREVIEW-XONIX-08 results.
 
-Use existing targeted scenarios for changed code; one final comprehensive lab acceptance after integration. Do not start a new chain of numbered stages or rerun the full historical suite on every intermediate change.
+Validate WireGuard (`tests/protocols/wireguard/`), AmneziaWG 3.1 (`tests/protocols/amneziawg31/`), and Hysteria2 (`tests/protocols/hysteria2/`) independently, plus shared multi-inbound conflict and non-interference integration via `tests/integration/` and `tests/release/test_vpn_inbounds.py`. Legacy standalone AWG `/30` client compatibility testing is explicitly canceled; test new synthetic WG and AWG 3.1 clients only.
 
-Real protocol acceptance needs actual startup/listener ownership, UI presence, correct client profile, fresh auth/handshake, bidirectional traffic, disable/delete and restart persistence. Record failures and NOT_RUN honestly. Separate lab/production/history/publication status. Never perform production fault injection. `docs/TESTING.md` lists fixtures.
+Live E2E (`PREVIEW08_RUN_E2E=1`) and Playwright UI (`tests/xonix/preview08-six-inbounds-panel.cjs`) require a disposable Debian 13 RFC1918 lab VM with `/var/lib/3xui-preview08-lab`; never run them on production. Record failures and skipped/NOT_RUN gates honestly, and separate lab, production, historical, and publication states. See `docs/TESTING.md`.

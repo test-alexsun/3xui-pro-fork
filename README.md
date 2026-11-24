@@ -1,55 +1,55 @@
 # 3xui-pro-fork — Debian 13 preview
 
-Воспроизводимый установщик 3x-ui, Xray, отдельного AmneziaWG 3.1, Nginx, Let's Encrypt и игры XONIX Neon Frontier. Целевая ОС — **Debian 13 amd64 с systemd**.
+Воспроизводимый установщик `3x-ui`, `Xray`, `AmneziaWG 3.1`, `WireGuard`, `Hysteria2`, `Nginx`, `Let's Encrypt` и игры `XONIX Neon Frontier`. Целевая ОС — **Debian 13 amd64 с systemd**.
 
-**PREVIEW-XONIX-08 ещё не принят.** Рабочая реализация управляет тремя VLESS inbound через нативную панель; AWG 3.1 работает отдельной службой. Шесть управляемых inbound — цель интеграции, а не заявленная готовая возможность. [Статус](docs/PROJECT_STATUS.md) отделяет preview от production.
+**PREVIEW-XONIX-08: PASS на чистой лабораторной Debian 13 VM** для всех шести управляемых панелью inbound (`P0`, `P1`, `P3`, `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`). **Production `de126` (`179.254.154.126`) и ветка `main` (`7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`) не изменялись**: production продолжает работать на `a3a6b991eb21dc2b4822c4fae13426d91e19db48` (три VLESS + отдельный AWG `29177`). См. [статус проекта](docs/PROJECT_STATUS.md) и [отчёт PREVIEW-XONIX-08](docs/stages/evidence/preview-xonix-08/test-results.md).
 
-PREVIEW-08 добавляет отдельную opt-in laboratory utility `release/preview_vpn_inbounds.py` для реальных native WG/AWG3.1/Hysteria2. Она не включена автоматически в installer и не разрешает production apply. Состояние `CONFIGURED_NOT_ACCEPTED` само по себе не означает handshake/traffic. Scoped lab проверки шести backend прошли после адресных исправлений fixtures; исходные FAIL сохранены в evidence. Это не полная installer/production приёмка.
+## Возможности и шесть протоколов
 
-## Возможности и протоколы
+| Tag / компонент | Runtime и транспорт | Порт / сеть по умолчанию | Аутентификация, export и статус |
+|---|---|---|---|
+| `VLESS-REALITY-XHTTP-H2` (P0) | Native `3x-ui` → `xray-linux-amd64` `26.11.9`, REALITY + XHTTP H2 | TCP `8443` (`--p0-port`) | UUID, REALITY keys/shortId; `/sub`, `/json`, `/clash`; **PASS** |
+| `VLESS-TLS-XHTTP-H2` (P1) | Nginx TLS/H2 → loopback `127.0.0.1:19441` (`xray-linux-amd64`) | Public TCP `443` | UUID + TLS (`externalProxy` SAN); `/sub`, `/json`, `/clash`; **PASS** |
+| `VLESS-REALITY-VISION` (P3) | Native `3x-ui` → `xray-linux-amd64`, REALITY + Vision | TCP `9443` (`--p3-port`) | UUID + `xtls-rprx-vision`; `/sub`, `/json`, `/clash`; **PASS** |
+| `WIREGUARD` | Native `3x-ui` → `xray-linux-amd64` userspace (`noKernelTun: true`) | UDP `51820` (`--wg-port`), `10.89.8.0/24` (`--wg-subnet`) | Pure-Python X25519 (`clients.wg_*`), zero AWG; `.conf`, `wireguard://`, `/sub`, `/json`; **PASS** |
+| `AMNEZIAWG-3.1` | Embedded `amneziawgnet` в `x-ui` MainPID (`kernelMode: false`) → Xray SOCKS5 loopback | UDP `29177` (`--awg-port`), `10.88.32.0/24` (`--awg-subnet`) | `awg` keys + `HeaderProtectionKey` + obfuscation; `vpn://` → `.conf`/`setconf`; **PASS** |
+| `HYSTERIA2` | Native `3x-ui` → `xray-linux-amd64` v2, `network: hysteria`, TLS `h3` | UDP `24443` (`--hy2-port`), two-domain ACME cert | 32-byte `auth` secret; `hysteria2://`, `/sub`; **PASS** |
 
-| Tag / компонент | Реализация в текущем preview |
-|---|---|
-| VLESS-REALITY-XHTTP-H2 / P0 | Нативная панель → Xray, REALITY + XHTTP H2 |
-| VLESS-TLS-XHTTP-H2 / P1 | Нативная панель → Xray; публичный TLS/H2 завершает Nginx |
-| VLESS-REALITY-VISION / P3 | Нативная панель → Xray, REALITY + Vision |
-| WIREGUARD | Native Xray TCP/UDP/lifecycle PASS в lab; default installer пока не создаёт |
-| AMNEZIAWG-3.1 | Default/production: отдельный runtime; lab: native relay/lifecycle PASS, прежний host-route handoff не принят |
-| HYSTERIA2 | Native Xray QUIC/TLS/lifecycle PASS в lab; default installer пока не создаёт |
+WireGuard и AmneziaWG 3.1 реализованы и проверяются **строго независимо** (отдельные модули, порты, подсети, ключи, клиенты и E2E-тесты). Подробности в [PROTOCOLS](docs/PROTOCOLS.md).
 
-Закреплены 3x-ui **3.11.0**, Xray **26.11.9**, AWG runtime **3.1.20260828**, AWG tools **3.1.20260812**. Nginx закреплён на Debian Security **1.26.3-3+deb13u11**. [Происхождение и лицензии](release/distribution/README.md).
+Закреплённые версии: `3x-ui` **3.11.0**, `Xray-core` **26.11.9**, `amneziawg-go` **3.1.20260828**, `awg` tools **3.1.20260812**, Nginx Debian Security **1.26.3-3+deb13u11**. [Происхождение и лицензии](release/distribution/README.md).
 
 ## Архитектура
 
-Nginx публикует два домена: сайт с XONIX и защищённым путём панели; отдельный домен подписок. SQLite и API панели — источник истины для текущих VLESS клиентов. Единственный дочерний Xray панели обслуживает P0/P1/P3. AWG имеет собственные private config и systemd unit. [Архитектура и диаграммы](docs/ARCHITECTURE.md).
+`Nginx` публикует два домена: основной домен с XONIX (`/`), защищённым путём панели и `/xhttp/` для P1, а также отдельный домен подписок (`access_log off`, корень `404`). SQLite (`/var/lib/3xui-pro-fork/x-ui.db`) и API панели — источник истины для всех шести inbound, клиентов и подписок. Единственный дочерний процесс `xray-linux-amd64` обслуживает P0, P1, P3, `WIREGUARD`, `HYSTERIA2` и loopback SOCKS5-ретранслятор для `AMNEZIAWG-3.1`; процесс `x-ui` обслуживает UI/API, подписки и embedded `AMNEZIAWG-3.1`. Отдельная служба `3xui-pro-fork-awg.service` остаётся inactive/disabled в 6-inbound режиме и активна только при `--vless-only` или на неизменённом production. [Архитектура](docs/ARCHITECTURE.md), [решения](docs/DECISIONS.md).
 
-## Установка и требования
+## Установка и режимы
 
-Нужны Debian 13 amd64, root, systemd, TUN/CAP_NET_ADMIN, два DNS A имени, доступ к закреплённым источникам и свободная выделенная RFC1918 /30. Исторически проверена машина примерно с 1 GiB RAM; это не гарантия ёмкости. Fresh installer требует минимум 512 MiB свободного диска; оставьте дополнительное место для backup, пакетов и журналов.
+Нужны Debian 13 amd64, root, systemd, `/dev/net/tun`, `CAP_NET_ADMIN`, два DNS A-имени, доступ к закреплённым источникам и непересекающиеся RFC1918 подсети. Fresh installer требует минимум 512 MiB свободного диска (используйте `TMPDIR=/var/tmp` при memory-backed `/tmp`).
 
-Используйте только проверенный immutable commit и SHA256 bootstrap: [подготовка и команда установки](docs/INSTALLATION.md). Не запускайте старый `x-ui-latest.sh`: legacy entrypoint отключён. Текущая установка создаёт три нативных VLESS и отдельный AWG, не шесть панельных inbound.
+- **Fresh 6-inbound по умолчанию**: `bootstrap-preview.sh` с `--panel-inbounds` и `--awg-subnet <UNUSED_RFC1918_/16../30>` (и опциональными `--wg-subnet`, `--wg-port`, `--awg-port`, `--hy2-port`) создаёт все 6 управляемых inbound.
+- **Opt-out legacy схема**: `--panel-inbounds --vless-only --awg-subnet <UNUSED_RFC1918_/30>` сохраняет схему 3 VLESS + отдельный `3xui-pro-fork-awg.service`.
+- **Opt-in апгрейд существующего 3-VLESS READY**: `--panel-inbounds --add-vpn-inbounds` (и `--handoff-standalone-awg`, если активен `3xui-pro-fork-awg.service`). На production запускается только по отдельному разрешению.
 
-## Управление и подписки
+Используйте только проверенный immutable commit и SHA256 bootstrap: [установка](docs/INSTALLATION.md). Старый `x-ui-latest.sh` отключён.
 
-Клиентов VLESS создавайте в **Clients → Add Clients**, назначая нужные inbound. Для P3 задайте `xtls-rprx-vision`. Изменение/отключение/удаление выполняются через штатные UI/API. Прекращение новых соединений подтверждалось; принудительное завершение уже открытых потоков не заявляется.
+## Управление, экспорт и подписки
 
-Raw VLESS links, JSON и Clash проверялись для существующих VLESS маршрутов. AWG выдаётся private `.conf`, не VLESS UUID. WireGuard/Hysteria2 subscription export в этой сборке не принят. [Матрица протоколов](docs/PROTOCOLS.md).
+Клиенты создаются и управляются через защищённый UI (`Inbounds` / `Clients`) или authenticated API панели. Для P3 задаётся `xtls-rprx-vision`. WireGuard экспортируется в стандартный `.conf`, `wireguard://`, `/sub/<subId>` и `/json/<subId>` без AWG-параметров; AmneziaWG 3.1 — в `vpn://<base64url>` (`clients/links` и `/sub/<subId>`) с декодированием в AWG 3.1 `.conf`; Hysteria2 — в `hysteria2://` (TLS/h3, SNI = main domain) через `clients/links` и `/sub/<subId>`. VLESS поддерживает `/sub`, `/json` и `/clash`. Для `AMNEZIAWG-3.1` обновление клиентов запускает ~30-секундный цикл пересборки Xray SOCKS5-ретранслятора. [Матрица протоколов](docs/PROTOCOLS.md).
 
-## Обновление, безопасность и восстановление
+## Безопасность, повторы и восстановление
 
-Полный безопасный updater/rollback проекта не реализован. Не применяйте `x-ui update` как штатное обновление: оно нарушает закреплённый tuple. Повтор installer с одинаковыми параметрами проверяет owned state; это не общий updater. После миграции обязателен `--panel-inbounds`.
+Повтор установщика с идентичными параметрами и `--panel-inbounds` проверяет ownership, целостность SQLite и криптографическую идентичность без перезаписи клиентов (`preserved_exact_identity: true`). Полный бинарный updater/rollback не реализован; не запускайте `x-ui update`.
 
-Не коммитьте SQLite, backup, API credentials, private keys, subscription tokens и приватный путь панели. Создавайте согласованный root-only backup SQLite и managed state до разрешённых изменений. После journal **READY автоматический rollback запрещён**. [Эксплуатация](docs/OPERATIONS.md), [восстановление](docs/RECOVERY.md).
+Никогда не коммитьте SQLite, backups, API tokens, private keys, subscription tokens и приватный путь панели. Оба журнала (`preview-panel-inbounds.json` и `preview-vpn-inbounds.json`) после `READY` запрещают автоматический rollback; при `RECOVERY_REQUIRED` требуется ручная диагностика. [Эксплуатация](docs/OPERATIONS.md), [восстановление](docs/RECOVERY.md).
 
 ## Документация и разработка
 
-- [Статус проекта](docs/PROJECT_STATUS.md) и [evidence PREVIEW-08](docs/stages/evidence/preview-xonix-08/test-results.md).
-- [Архитектура](docs/ARCHITECTURE.md), [протоколы](docs/PROTOCOLS.md), [установка](docs/INSTALLATION.md).
-- [Тестирование](docs/TESTING.md): historical baseline **318/318 PASS** отделён от новой приёмки.
+- [Статус проекта](docs/PROJECT_STATUS.md) и [отчёт PREVIEW-XONIX-08](docs/stages/evidence/preview-xonix-08/test-results.md).
+- [Архитектура](docs/ARCHITECTURE.md), [архитектурные решения](docs/DECISIONS.md), [протоколы](docs/PROTOCOLS.md), [установка](docs/INSTALLATION.md).
+- [Тестирование](docs/TESTING.md): historical baseline **318/318 PASS** (07A) отделён от новой 6-inbound приёмки PREVIEW-08.
 - [GEMINI.md](GEMINI.md), [AGENTS.md](AGENTS.md), [передача Antigravity](docs/ANTIGRAVITY_HANDOFF.md).
-- [Подробная история установщика](docs/PREVIEW_XONIX_INSTALL.md): разделы описывают разные исторические режимы, а не одну актуальную production-команду.
-
-Работайте в preview-ветках, сохраняйте клиентов и ключи, не меняйте production без отдельного разрешения. Дополнительные неиспользуемые legacy-протоколы не добавляются.
+- [Историческая справка установщика](docs/PREVIEW_XONIX_INSTALL.md): архивные режимы до 6-inbound интеграции.
 
 ## Авторство и лицензии
 

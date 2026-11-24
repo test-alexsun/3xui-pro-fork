@@ -4,8 +4,8 @@ description: "Read before branching, committing, publishing preview changes, rev
 ---
 # Git workflow
 
-Work on preview branches, preserve others' work and evidence. Do not modify main automatically, force push, reset hard, clean untracked files or rewrite history. Do not declare production-stable release without corresponding acceptance.
+Work only on preview branches (`preview/xonix-standalone-debian13`), preserving others' work and existing evidence files (`preview08-*.json`). Never modify `main` (`7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`) automatically, force push, `git reset --hard`, `git clean -fdx`, or rewrite history. Do not declare production deployment from a preview commit.
 
-Before publication review staged diff, secrets/private data, executable installer bits, relative Markdown links, attribution/licenses and docs/source consistency. Exclude private DB/backups/tokens/configs without deleting historical evidence blindly.
+Before committing or pushing, inspect `git status` and `git diff`, verify pure LF (`\n`) line endings, executable bits on `bootstrap-preview.sh` and `install-preview.sh` (`100755`), relative Markdown links, valid YAML frontmatter on `.agents/rules/*.md`, licenses/attribution, and absence of secrets, private backups/DBs, or personal Windows paths.
 
-Publish ordinary commits/push only within authorized preview scope. Record base/new commit, verify remoteHEAD and published files and confirm main unchanged. A local commit is not publication and a published preview is not deployment. Update `docs/PROJECT_STATUS.md` and final evidence with actual outcomes only.
+Publish ordinary commits/push only within authorized preview scope. Record the exact source commit (`4c5ebd98f434723c1f424dbb4e50de3709ef1463` before docs sync) and record the final commit SHA and verified remote `HEAD` only after pushing — never invent a commit hash in advance. Confirm `main` remains unchanged.

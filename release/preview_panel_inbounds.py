@@ -238,9 +238,9 @@ def configure_lab_origin(api,origin):
     if rule not in template['routing']['rules']:template['routing']['rules'].insert(0,rule)
     api.call('xray/update',{'xraySetting':json.dumps(template),'outboundTestUrl':result.get('outboundTestUrl','')},form=True)
 
-def migrate(manifest,atomic,test_origin=None):
+def migrate(manifest,atomic,test_origin=None,*,require_standalone_awg=True):
     if STATE.exists() and read_journal().get('phase')=='READY':return verify_ready()
-    ownership.inspect_installed(manifest)
+    ownership.inspect_installed(manifest,require_standalone_awg=require_standalone_awg)
     web,source,clients=source_snapshot();blueprint,people=blueprints(source,clients,web['domain']);api=api_client()
     existing=api.call('inbounds/list') or [];existing_clients=api.call('clients/list') or []
     for entry in existing:
@@ -278,7 +278,7 @@ def migrate(manifest,atomic,test_origin=None):
             person['create_requested']=True;phase('STAGING')
             api.call('clients/add',{'client':person['client'],'inboundIds':person['inboundIds']});person['created']=True;phase('STAGING')
         phase('STAGED')
-        ownership.inspect_installed(manifest);source_snapshot()
+        ownership.inspect_installed(manifest,require_standalone_awg=require_standalone_awg);source_snapshot()
         current=ownership.service_properties(transport.UNIT.name)
         if int(current['MainPID'])!=old_pid or Path('/proc/'+str(old_pid)+'/stat').read_text().split(') ',1)[1].split()[19]!=old_start:raise RuntimeError('standalone generation changed before handoff')
         phase('STOPPING_STANDALONE');command('systemctl','stop',transport.UNIT.name);stopped=True

@@ -54,7 +54,7 @@ def service_properties(unit):
     return dict(line.split('=', 1) for line in output.splitlines() if '=' in line)
 
 
-def inspect_installed(candidate_manifest):
+def inspect_installed(candidate_manifest, *, require_standalone_awg=True):
     """Refuse anything outside the exact BUILD-ALL-04 tuple and units.
 
     This read-only inspection is a prerequisite, not a durable ownership proof.
@@ -65,13 +65,15 @@ def inspect_installed(candidate_manifest):
         raise RuntimeError('unsupported component tuple')
     if candidate_manifest.get('files') != PINNED_FILES:
         raise RuntimeError('component manifest does not match the pinned baseline')
-    for path in (PREFIX, DATA, DATA / 'awg'):
+    private_dirs = (PREFIX, DATA, DATA / 'awg') if require_standalone_awg else (PREFIX, DATA)
+    for path in private_dirs:
         root_dir(path, private=True)
     for path in (PREFIX / 'panel', PREFIX / 'panel/bin', PREFIX / 'awg'):
         root_dir(path)
     regular_root_file(DATA / 'x-ui.db', private=True)
-    for name in ('server.setconf', 'client.conf', 'metadata.json'):
-        regular_root_file(DATA / 'awg' / name, private=True)
+    if require_standalone_awg:
+        for name in ('server.setconf', 'client.conf', 'metadata.json'):
+            regular_root_file(DATA / 'awg' / name, private=True)
     installed = {}
     for name, expected in candidate_manifest['files'].items():
         path = PREFIX / name
@@ -88,6 +90,15 @@ def inspect_installed(candidate_manifest):
     processes = {}
     for unit, expected in UNITS.items():
         path = Path('/etc/systemd/system') / unit
+        if not require_standalone_awg and unit == '3xui-pro-fork-awg.service':
+            if path.exists() or path.is_symlink():
+                regular_root_file(path)
+                if sha(path) != expected:
+                    raise RuntimeError('unknown unit content: ' + unit)
+            p = service_properties(unit)
+            if p.get('ActiveState') not in ('inactive', 'failed', '') or int(p.get('MainPID', '0') or '0') != 0:
+                raise RuntimeError('standalone AWG unit must remain inactive in native embedded mode')
+            continue
         regular_root_file(path)
         if sha(path) != expected:
             raise RuntimeError('unknown unit content: ' + unit)

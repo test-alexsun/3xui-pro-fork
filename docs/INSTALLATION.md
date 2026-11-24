@@ -1,18 +1,27 @@
 # Установка Debian 13 preview
 
-Это инструкция для новой выделенной Debian 13 amd64 машины. Production migration требует отдельного разрешения и reviewed plan. Не повторять handoff на существующем READY deployment ради добавления протоколов.
+Документ описывает универсальный установщик Debian 13 amd64/systemd с шестью управляемыми inbound (`VLESS-REALITY-XHTTP-H2`, `VLESS-TLS-XHTTP-H2`, `VLESS-REALITY-VISION`, `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`). Применение на существующем production `de126` требует отдельного разрешения и окна обслуживания.
 
-## Подготовка
+## Предварительные требования
 
-Нужны root, running systemd, `/dev/net/tun`, CAP_NET_ADMIN, настроенные signed Debian repositories и исходящий HTTPS. Historical fixture примерно 1 GiB RAM проходил приёмку; capacity под пользовательской нагрузкой не измерена. Installer требует минимум 512 MiB свободного диска; планируйте запас для компонентов и private backup. На memory-backed `/tmp` используйте `TMPDIR=/var/tmp`.
+- Свежая Debian 13 (trixie) amd64 машина с `systemd` PID 1, root, `/dev/net/tun`, `CAP_NET_ADMIN`, подписанными репозиториями Debian (`apt`) и исходящим HTTPS к закреплённым источникам (`3x-ui` `3.11.0`, `Xray-core` `26.11.9`, Nginx Debian Security `1.26.3-3+deb13u11`).
+- Минимум 512 MiB свободного места на `/` и достаточный RAM (при memory-backed `/tmp` обязательно передавайте `TMPDIR=/var/tmp`).
+- Ровно два DNS A-имени (`--domain` и `--subscription-domain`), указывающих на `--public-bind`. AAAA не настраиваются для IPv4-only режима.
+- Свободные непересекающиеся порты по умолчанию:
+  - TCP `80`, `443` (Nginx + P1 TLS/H2);
+  - TCP `8443` (`--p0-port`), TCP `9443` (`--p3-port`), loopback TCP `2096` (`--subscription-port`);
+  - UDP `51820` (`--wg-port`, `WIREGUARD`);
+  - UDP `29177` (`--awg-port`, `AMNEZIAWG-3.1`);
+  - UDP `24443` (`--hy2-port`, `HYSTERIA2`).
+- Свободные непересекающиеся RFC1918 IPv4 подсети `/16../30` без конфликтов с маршрутами хоста и Docker/VPN сетями (`ip -4 route show table all`):
+  - `--wg-subnet` (по умолчанию `10.89.8.0/24`);
+  - `--awg-subnet` (обязателен; рекомендуемое значение для 6-inbound режима `10.88.32.0/24`).
 
-Подготовьте два DNS A имени на выбранный IPv4; AAAA не добавляйте для неподтверждённого IPv6 deployment. Проверьте TCP80/443, P0 TCP8443, P3 TCP9443 и AWG UDP29177. Дополнительные WG/HY2 порты не назначены. Установщик не открывает host/provider firewall, не изменяет DNS/SSH и не включает NAT автоматически.
+Установщик не изменяет host/provider firewall, SSH, DNS и не включает глобальный NAT; доступность TCP/UDP портов проверяется оператором заранее.
 
-Проверьте `ss -H -ltnp`, `ss -H -lunp`, `ip -4 route`, `free -m`, `df -h / /var/tmp`. Выберите свободную dedicated RFC1918 /30 без overlap с существующими маршрутами/VPN. Не публикуйте диагностические данные с private identities.
+## Режим 1: свежая установка с 6 управляемыми inbound (по умолчанию)
 
-## Immutable bootstrap
-
-Из чистой root-only директории на новой машине после независимой проверки commit и bootstrap SHA256:
+Из root-only каталога после независимой сверки 40-hex commit SHA и SHA256 `bootstrap-preview.sh`:
 
 ```sh
 umask 077
@@ -25,22 +34,60 @@ TMPDIR=/var/tmp sh ./bootstrap-preview.sh "$REV" \
   --domain 'vpn.example.com' \
   --subscription-domain 'sub.example.com' \
   --acme-email 'operator@example.com' \
-  --awg-subnet '<UNUSED_RFC1918_/30>' \
+  --wg-subnet '10.89.8.0/24' \
+  --awg-subnet '10.88.32.0/24' \
+  --wg-port 51820 \
+  --awg-port 29177 \
+  --hy2-port 24443 \
   --panel-inbounds
 ```
 
-Placeholders намеренно не задают реальные credentials, private subnet или production hosts. При ошибке SHA256 остановиться. Floating branch и main не заменяют reviewed commit. Bootstrap проверяет fetched commit, installer проверяет pinned upstream archives, binary hashes и manifests. Hash из того же непроверенного источника обеспечивает только проверку повреждения.
+Что делает этот запуск:
+1. `install_candidate.py --no-standalone-awg` устанавливает `3x-ui 3.11.0`, `xray-linux-amd64 26.11.9` и AWG 3.1 бинарники в `/opt/3xui-pro-fork`, настраивает Nginx + SAN ACME TLS и стартует `3xui-pro-fork.service` (при этом `3xui-pro-fork-awg.service` остаётся disabled/inactive).
+2. `preview_panel_inbounds.py` импортирует и верифицирует P0/P1/P3 (`preview-panel-inbounds.json` → `READY`).
+3. `preview_vpn_inbounds.py` валидирует разделение портов и подсетей, разворачивает независимые `WIREGUARD`, `AMNEZIAWG-3.1` и `HYSTERIA2` со стартовыми клиентами (`starter-wireguard`, `starter-amneziawg31`, `starter-hysteria2`) и фиксирует `preview-vpn-inbounds.json` → `READY`.
 
-Строгий режим использует два домена и изолированный Certbot HTTP-01. Порты P0/P3 можно задать `--p0-port` / `--p3-port` только при новом согласованном layout; существующие не менять. Автоматически генерируется private panel path; credentials остаются root-readable, не вставлять их в reports.
+## Режим 2: Opt-out `--vless-only` (совместимость со старой схемой)
 
-## Первый запуск и клиенты
+Для сохранения старой раскладки (3 native VLESS + отдельная systemd-служба `3xui-pro-fork-awg.service` на `/30`) на свежей машине:
 
-Проверьте systemd/Nginx/HTTPS по [OPERATIONS](OPERATIONS.md), native journal READY, три действительных VLESS inbound и AWG endpoint. Через защищённый UI создайте клиента, назначьте нужные native inbound; для P3 задайте flow `xtls-rprx-vision`. Используйте сгенерированные native subscription links. AWG starter `.conf` выдаётся отдельно по защищённому каналу и не является panel-created customer.
+```sh
+TMPDIR=/var/tmp sh ./bootstrap-preview.sh "$REV" \
+  --public-bind '<SERVER_IPV4>' \
+  --domain 'vpn.example.com' \
+  --subscription-domain 'sub.example.com' \
+  --acme-email 'operator@example.com' \
+  --awg-subnet '<UNUSED_RFC1918_/30>' \
+  --panel-inbounds \
+  --vless-only
+```
 
-Текущий installer **не создаёт шесть native inbound**. Не добавляйте вручную фиктивные WG/AWG/HY2 rows. [PROTOCOLS](PROTOCOLS.md) описывает gap и ограничения.
+Если на узле уже существует `preview-vpn-inbounds.json`, флаг `--vless-only` отклонён (fail-closed).
 
-## Повтор и обновление
+## Режим 3: Opt-in добавление VPN на существующий 3-VLESS `READY` узел
 
-Повтор разрешён с тем же pin, доменами, bind, ports, subnet, credentials и `--panel-inbounds`; installer проверяет ownership и сохраняет клиентов/ключи. `--migrate-panel-inbounds` предназначен для отдельно разрешённого перехода standalone → native, не нужен повторно после READY. Полный updater проекта не реализован; не заменять компоненты floating upstream update.
+Не запускается автоматически и на production требует отдельного операторского разрешения:
 
-Исторические sandbox/Pebble режимы и подробные flags: [PREVIEW_XONIX_INSTALL](PREVIEW_XONIX_INSTALL.md). Их нельзя смешивать с public deployment flags.
+```sh
+TMPDIR=/var/tmp sh ./install-preview.sh \
+  --public-bind '<SERVER_IPV4>' \
+  --domain 'vpn.example.com' \
+  --subscription-domain 'sub.example.com' \
+  --acme-email 'operator@example.com' \
+  --wg-subnet '10.89.8.0/24' \
+  --awg-subnet '10.88.32.0/24' \
+  --wg-port 51820 \
+  --awg-port 29177 \
+  --hy2-port 24443 \
+  --panel-inbounds \
+  --add-vpn-inbounds \
+  --handoff-standalone-awg
+```
+
+Без `--add-vpn-inbounds` повторный запуск против существующего 3-VLESS `READY` оставляет узел нетронутым; без `--handoff-standalone-awg` активная `3xui-pro-fork-awg.service` никогда не останавливается. Оба флага `--add-vpn-inbounds` и `--handoff-standalone-awg` требуют `--panel-inbounds`, а `--vless-only` несовместим с `--add-vpn-inbounds`.
+
+## Безопасный повтор
+
+Повторный вызов с теми же `--domain`, `--subscription-domain`, `--public-bind`, портами, подсетями и `--panel-inbounds` завершается кодом `0`, проверяет `upgrade_candidate.inspect_installed(..., require_standalone_awg=False)`, `native.verify_ready()` и `vpn.verify_ready()`, не меняя inbound IDs, UUIDs, ключи, `subId` и операторских клиентов. При расхождении параметров или состоянии `RECOVERY_REQUIRED` повтор аварийно останавливается без изменений.
+
+Исторические flags sandbox/Pebble: [PREVIEW_XONIX_INSTALL](PREVIEW_XONIX_INSTALL.md).

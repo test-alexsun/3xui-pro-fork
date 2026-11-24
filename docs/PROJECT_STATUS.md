@@ -1,35 +1,33 @@
 # Статус проекта
 
-Сводка на 2026-11-24. **PREVIEW-XONIX-08: NOT PASS** до подтверждённых шести управляемых inbound и финальной lab приёмки. Это описание current sources, не обещание завершённой интеграции.
+Сводка на 2026-11-24. **PREVIEW-XONIX-08: PASS на чистой лабораторной Debian 13 VM** для всех шести управляемых панелью inbound (`VLESS-REALITY-XHTTP-H2`, `VLESS-TLS-XHTTP-H2`, `VLESS-REALITY-VISION`, `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`) и универсального Debian 13 установщика.
 
 | Область | Подтверждённое состояние |
 |---|---|
-| Preview branch | `preview/xonix-standalone-debian13` |
-| Исходный docs HEAD | `d2d184f9877f3c49fbd2e1987f35ebb5c97e9cb6` |
-| Implementation baseline | `a3a6b991eb21dc2b4822c4fae13426d91e19db48` |
-| Production implementation | Тот же a3a6b99 по существующему 07B report; новый read-only audit:3VLESS, READY, AWG29177; сохранены PID/config/cert |
-| Последняя historical regression | 318/318 PASS, 07A |
-| Production journal | READY по 07B report; в PREVIEW-08 mutation не разрешена |
-| Native panel | Три VLESS P0/P1/P3 |
-| AWG 3.1 | Отдельный реальный runtime, не native Inbounds peer management |
-| WG / HY2 | Не создаются installer; optional lab utility PREVIEW-08 отдельно от default lifecycle |
-| Новая lab проверка |6real API records/listeners, P0/P1/P3 traffic, WG/AWG/HY2 TCP/UDP+restart+disable/delete/recreate PASS после targeted fixture fixes; initial FAIL сохранены |
-| Проверенная preview implementation | `2f275b6be69531eed80cdbcab5015369782afc43`, remote/tree проверены; последующий commit только фиксирует publication evidence |
+| Рабочая ветка | `preview/xonix-standalone-debian13` |
+| Базовый preview HEAD до финальной интеграции | `4c5ebd98f434723c1f424dbb4e50de3709ef1463` |
+| Native VLESS implementation baseline | `a3a6b991eb21dc2b4822c4fae13426d91e19db48` |
+| GitHub `main` | `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661` (**не изменялся**) |
+| Production VPS `de126` (`179.254.154.126`) | **Не изменялся** (read-only audit: `3xui-pro-fork.service` + `3xui-pro-fork-awg.service` UDP `29177` + `nginx` + `3xui-preview-renew.timer` active, `3xui-preview-xray.service` inactive, 3 VLESS `READY`, `preview-vpn-inbounds.json` отсутствует, порты `51820` и `24443` не слушаются) |
+| Историческая регрессия (07A) | `318/318 PASS` (сохранена без пересборки) |
+| Unit & contract suites (Debian 13 Docker) | `tests/release` **79/79 OK**, `tests/protocols` **69 (66 OK, 3 E2E skipped)**, `tests/integration` **15 (14 OK, 1 E2E skipped)** |
+| Чистая Debian 13 VM приёмка (PREVIEW-XONIX-08) | **PASS**: fresh install (`READY`/`READY`), safe repeat (`preserved_exact_identity: true`), P0/P1/P3 + XONIX + VLESS subs, независимые E2E `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`, одновременная работа и изоляция всех 6, Playwright Chromium UI (6 Inbounds + 6 Clients), HTTP `308`, SQLite `ok`, OOM `0` |
 
-## Завершено ранее
+## Что реализовано и подтверждено
 
-Strict two-domain Nginx/ACME/XONIX, native handoff P0/P1/P3, сохранение UUID/keys, native customer lifecycle и subscriptions проверялись в 07A; production handoff с READY — в 07B. Закреплён AWG 3.1; измеренный client path MTU1368 не меняет server default.
+1. Универсальный Debian 13 installer (`install-preview.sh` / `release/preview_install.py`) с режимами:
+   - по умолчанию (`--panel-inbounds`): устанавливает все 6 управляемых inbound (`install_candidate.py --no-standalone-awg` → `preview_panel_inbounds.py` → `preview_vpn_inbounds.py`);
+   - `--vless-only`: сохраняет старую схему 3 VLESS + `3xui-pro-fork-awg.service`;
+   - `--panel-inbounds --add-vpn-inbounds` (+ `--handoff-standalone-awg`): opt-in добавление WG/AWG 3.1/HY2 на существующий 3-VLESS `READY` узел.
+2. Независимые протокольные модули и E2E:
+   - `release/preview_wireguard.py` (`WIREGUARD`, UDP `51820`, `10.89.8.0/24`, `xray-linux-amd64` `noKernelTun: true`, pure-Python X25519);
+   - `release/preview_amneziawg31.py` (`AMNEZIAWG-3.1`, UDP `29177`, `10.88.32.0/24`, embedded `amneziawgnet` `3.1.20260828` + `awg` `3.1.20260812` с `HeaderProtectionKey`);
+   - `release/preview_hysteria2.py` (`HYSTERIA2`, UDP `24443`, `xray-linux-amd64` v2 TLS/h3 с переиспользованием SAN-сертификата двух доменов).
+3. Подробный журнал отчёта и санитайзнутые JSON-результаты: [08 test-results](stages/evidence/preview-xonix-08/test-results.md).
 
-## Открыто
+## Известные ограничения
 
-Полная связь WireGuard/AWG3.1/Hysteria2 UI → API/SQLite → runtime → client export → disable/delete/restart. Upstream backend поддерживает все три типа. Блокер: default installer не включает utility; embedded AWG не подтверждает прежний host-TUN/server-address профиль. Минимальные решения — реальный adapter существующей службы либо отдельно принятый kernel/host-address handoff; детали в08 evidence.
-
-Source audit подтвердил upstream native support всех трёх в3.11.0, включая ту же AWG3.1 module version и Xray HY2 version2. Основная причина отсутствия — installer фиксировал только три VLESS tag. AWG handoff требует отдельной проверки host-TUN → embedded gVisor routing compatibility; одинаковая версия wire runtime её не доказывает. [Подробное заключение](PROTOCOLS.md#почему-трёх-inbound-не-было).
-
-`release/preview_vpn_inbounds.py` — opt-in laboratory integration, не automatic installer hook. Production apply запрещён utility; native READY сохраняется отдельно. Новый VPN manifest `CONFIGURED_NOT_ACCEPTED` означает только завершённую конфигурацию, не acceptance. Actual final checks и published revision проверять в08 evidence.
-
-Full project updater/rollback, автоматический reverse READY, production six-inbound rollout, global client compatibility и full-tunnel NAT не приняты. Нет команды безопасного production применения трёх отсутствующих inbound до завершённой реализации и lab acceptance.
-
-## Следующие допустимые направления
-
-Сначала завершить source-compatible backend/control-plane integration и один final lab run. Затем immutable preview publication, sanitization review и отдельное операторское разрешение на production apply. Развитие UI, exporter и backup automation должно сохранять current clients/keys и разделение evidence. [Antigravity handoff](ANTIGRAVITY_HANDOFF.md).
+- Тестирование обратной совместимости со старыми standalone `/30` WG/AWG профилями **официально отменено**; проверялись новые синтетические профили, при сохранении production клиентов и ключей без изменений.
+- Автоматический full binary updater/rollback и power-loss recovery migration-журналов не реализованы; `kernelMode: true` (`xui-awg<ID>`) не используется; серверный MTU зафиксирован на `1420`.
+- Встроенный `AMNEZIAWG-3.1` при изменении клиента (`add`/`update`/`del`) перезапускает Xray на ~30-секундном reconcile-тике для обновления SOCKS5-ретранслятора; `clients/get` и `clients/list` возвращают `allowedIPs` как CSV-строку.
+- Выкатка 6-inbound конфигурации на production `de126` не выполнялась и требует отдельного операторского разрешения и maintenance window. См. [ANTIGRAVITY_HANDOFF](ANTIGRAVITY_HANDOFF.md).

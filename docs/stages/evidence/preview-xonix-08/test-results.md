@@ -1,80 +1,92 @@
-# PREVIEW-XONIX-08 — integration and handoff
+# PREVIEW-XONIX-08 — финальная лабораторная приёмка шести управляемых Inbounds
 
-Date: 2026-11-24. **Overall: INCOMPLETE, not PASS.** This preview adds an explicit laboratory integration and source-backed handoff documentation. The default installer still provisions three native VLESS inbounds plus standalone AWG. Production six-inbound migration is not qualified or executed.
+**Статус: PASS на чистой лабораторной Debian 13 amd64 VM** (fresh install, safe repeat install, все 6 управляемых inbound `P0`, `P1`, `P3`, `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`, одновременная работа и взаимная изоляция, UI/XONIX Playwright, экспорт, подписки, системное здоровье). **Production `de126` (`179.254.154.126`) и ветка `main` (`7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`) не изменялись.**
 
-## A. Why three inbounds were absent
+> [!NOTE]
+> Исторические результаты раннего 08 lab-этапа ([preview08-existing-initial-results.json](preview08-existing-initial-results.json), [preview08-final-results.json](preview08-final-results.json), [preview08-targeted-results.json](preview08-targeted-results.json), [preview08-restart-recheck.json](preview08-restart-recheck.json), [production-readonly-summary.json](production-readonly-summary.json), [targeted-tests.log](targeted-tests.log)) сохранены без удаления как часть истории ветки. Ниже приведён полный отчёт по завершённой интеграции по всем 23 обязательным пунктам.
 
-| Protocol | Native panel support at 3.11.0 | Existing project implementation | Cause / selected runtime |
-|---|---|---|---|
-| WireGuard | Yes | Historical Xray userspace core-pair tests | Preview provisioning only imported P0/P1/P3; now uses native Xray, no duplicate service |
-| AmneziaWG 3.1 | Yes; embedded dependency `amneziawg-go/v3 v3.1.20260828` | Separate pinned AWG3.1 service, private single-peer /30 configuration | Existing `awg_service.py` owns host TUN/UDP29177 and never creates a panel record; laboratory utility imports identities into embedded panel manager after releasing the old port |
-| Hysteria2 | Yes, panel protocol `hysteria`, version2 | Historical Xray26.11.9 core-pair tests | No current preview provisioning; now native Xray protocol/transport hysteria with TLS/h3 |
+---
 
-Evidence: [fixed native registry](../../../../release/preview_panel_inbounds.py), [AWG supervisor](../../../../release/awg_service.py), [new opt-in integration](../../../../release/preview_vpn_inbounds.py), [upstream native schemas](https://github.com/MHSanaei/3x-ui/tree/v3.11.0/frontend/src/schemas/protocols/inbound), [AWG pinned module](https://github.com/MHSanaei/3x-ui/blob/v3.11.0/go.mod), [AWG settings](https://github.com/MHSanaei/3x-ui/blob/v3.11.0/internal/amneziawg/types.go), [Xray HY2 schema](https://github.com/XTLS/Xray-core/blob/v26.11.9/infra/conf/hysteria.go).
+## Обязательные 23 пункта отчёта
 
-No panel version change is required for basic native backend support. Embedded AWG uses gVisor and per-peer authenticated SOCKS to Xray; existing standalone AWG uses a host TUN and server tunnel address. Matching wire-library versions does not qualify routing equivalence or preserve an old full client profile by itself.
+1. **Исходный commit**: `4c5ebd98f434723c1f424dbb4e50de3709ef1463` (на ветке `preview/xonix-standalone-debian13`; implementation baseline `a3a6b991eb21dc2b4822c4fae13426d91e19db48`; предыдущая 08 lab-база `2f275b6be69531eed80cdbcab5015369782afc43`).
+2. **Финальный commit**: фиксируется после публикации implementation commit в `preview/xonix-standalone-debian13` (хеши исходников — [source-sha256.json](source-sha256.json); в этом файле не указывается несуществующий/додуманный hash текущего или будущего коммита).
+3. **Remote HEAD**: проверяется после обычного `git push origin preview/xonix-standalone-debian13` с подтверждением неизменности `origin/main` = `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`.
+4. **Результаты оркестрации**: соблюдена схема parallel → sequential → unified Debian 13 VM acceptance → docs & security review. Работа продолжена без создания новых серий этапов (`08A`, `09`).
+5. **Работа каждого субагента**:
+   - *VLESS & UI Engineer*: проверил совместимость `preview_panel_inbounds.py` с 6-inbound строками и реализовал Playwright-набор [preview08-six-inbounds-panel.cjs](../../../../tests/xonix/preview08-six-inbounds-panel.cjs).
+   - *WireGuard Protocol Engineer*: реализовал независимый [preview_wireguard.py](../../../../release/preview_wireguard.py) (RFC 7748 X25519 без `awg`), 26 unit-тестов и независимый [wireguard/test_e2e.py](../../../../tests/protocols/wireguard/test_e2e.py).
+   - *AmneziaWG 3.1 Engineer*: реализовал независимый [preview_amneziawg31.py](../../../../release/preview_amneziawg31.py) (`kernelMode: false`, `HeaderProtectionKey`, AWG 3.1 `3.1.20260828`/`3.1.20260812`), 22 unit-теста и [amneziawg31/test_e2e.py](../../../../tests/protocols/amneziawg31/test_e2e.py).
+   - *Hysteria2 Engineer*: реализовал [preview_hysteria2.py](../../../../release/preview_hysteria2.py) (v2, TLS `h3`, existing SAN cert), 18 unit-тестов и [hysteria2/test_e2e.py](../../../../tests/protocols/hysteria2/test_e2e.py).
+   - *Integration / Installer*: доработал [install_candidate.py](../../../../release/install_candidate.py) (`--no-standalone-awg`), [upgrade_candidate.py](../../../../release/upgrade_candidate.py), [preview_panel_inbounds.py](../../../../release/preview_panel_inbounds.py), [preview_vpn_inbounds.py](../../../../release/preview_vpn_inbounds.py), [preview_install.py](../../../../release/preview_install.py) и [tests/integration/](../../../../tests/integration/test_six_inbounds.py).
+   - *Security & QA Reviewer*: провёл аудит секретов/путей/прав/SHA256 инвариантов/разделения WG и AWG 3.1 + финальную read-only проверку `de126`.
+6. **Архитектурные решения**: зафиксированы в [DECISIONS.md](../../../DECISIONS.md) и [ARCHITECTURE.md](../../../ARCHITECTURE.md) (строго 6 target inbound, 2 домена, Xray userspace WG vs embedded `amneziawgnet` AWG 3.1, Hysteria2 с переиспользованием ACME SAN, серверный MTU `1420`, отмена проверки legacy `/30` и 1.x/2.x профилей, fail-closed журналы).
+7. **Шесть Inbounds**: по данным чистой VM ([preview08-fresh-summary.json](preview08-fresh-summary.json), [preview08-ui-results.json](preview08-ui-results.json)) все 6 созданы, включены и видны в UI (`Inbounds`: 6 строк, `Clients`: 6 строк):
+   - `id=1` `VLESS-REALITY-XHTTP-H2` (`vless`, TCP `8443`, `xray-linux-amd64`)
+   - `id=2` `VLESS-TLS-XHTTP-H2` (`vless`, TCP `443` Nginx → `127.0.0.1:19441` `xray-linux-amd64`)
+   - `id=3` `VLESS-REALITY-VISION` (`vless`, TCP `9443`, `xray-linux-amd64`)
+   - `id=4` `WIREGUARD` (`wireguard`, UDP `51820`, `xray-linux-amd64`)
+   - `id=5` `AMNEZIAWG-3.1` (`amneziawg`, UDP `29177`, `x-ui` MainPID → Xray SOCKS5 loopback)
+   - `id=6` `HYSTERIA2` (`hysteria`, UDP `24443`, `xray-linux-amd64`)
+8. **Отдельный WireGuard PASS/FAIL**: **PASS** ([preview08-wireguard-results.json](preview08-wireguard-results.json)) — 10/10 проверок PASS (`backend`, `inbound`, `client_config`, `handshake`, `tcp_traffic`, `udp_traffic`, `crud`, `restart`, `persistence`, `ui_api`); `client_driver: linux-kernel-wireguard`, порт UDP `51820`, `tcp_payload_bytes: 65536`, `udp_payload_bytes: 8192`, PID Xray до/после restart `6628 -> 7610`, удаление клиента подтверждено.
+9. **Отдельный AWG 3.1 PASS/FAIL**: **PASS** ([preview08-amneziawg31-results.json](preview08-amneziawg31-results.json)) — 10/10 проверок PASS; `amneziawg-go v3.1.20260828`, `amneziawg-tools v3.1.20260812`, порт UDP `29177`, `mtu: 1420`, `negative_plain_wg_rejected: PASS`, `tcp_payload_bytes: 65536`, `udp_datagrams: 16` × `512` B, ротация ключей, disable/enable, restart persistence и удаление подтверждены.
+10. **Отдельный Hysteria2 PASS/FAIL**: **PASS** ([preview08-hysteria2-results.json](preview08-hysteria2-results.json)) — 10/10 проверок PASS (`inbound_and_listener_ownership`, `client_create_and_export`, `initial_transfer`, `rotate_auth_old_denied`, `rotate_auth_new_transfer`, `disabled_denied`, `reenabled_transfer`, `restart_persistence_listener`, `restart_persistence_transfer`, `deleted_denied`), UDP `24443`, `65536` B TCP, `16` × `512` B UDP, `alpn: ["h3"]`, строгий CA check.
+11. **Результаты P0/P1/P3**: **PASS** ([preview08-existing-results.json](preview08-existing-results.json)) — реальный трафик P0 (uplink `67388`, downlink `68715`), P1 (`67388`/`68715`), P3 (`69726`/`69750`), HTTPS `de126.alexsun55.ru` `200` XONIX + `de126-sub.alexsun55.ru` `404` root. Historical `318/318 PASS` (07A) сохранён без повторного полного прогона.
+12. **Проверка независимости WG/AWG**: **PASS** ([preview08-six-inbounds-results.json](preview08-six-inbounds-results.json)) — 7/7 проверок PASS: `six_inbounds_active`, `port_and_ownership_isolation` (`51820` xray vs `29177` `x-ui` vs `24443` xray; `3xui-pro-fork-awg.service` inactive), `subnet_and_key_isolation` (`10.89.8.0/24` vs `10.88.32.0/24`, раздельные ключи), `simultaneous_all_six_traffic`, `disable_wg_keeps_awg_and_others_alive`, `disable_awg_keeps_wg_and_others_alive`, `restart_preserves_all_six`. Плюс 15 тестов в `tests/integration` (14 OK, 1 E2E skipped без live VM).
+13. **Client CRUD**: проверен отдельно на реальных клиентах в каждом протокольном E2E (создание `clients/add`, проверка `clients/get`, ротация ключей/auth через `clients/update`, отказ старых ключей/auth, `enable=false`/`true`, `clients/del` с отказом доступа удалённого клиента).
+14. **Export**:
+    - `WIREGUARD`: стандартный `.conf`, `wireguard://`, `/sub/<subId>`, `/json/<subId>` — подтверждено отсутствие AWG-полей.
+    - `AMNEZIAWG-3.1`: `vpn://<base64url>` через `clients/links` и `/sub/<subId>`, декодирование и проверка `HeaderProtectionKey` / `Jc` / `Jmin` / `Jmax` / `S1`–`S4` / `H1`–`H4` / `MTU = 1420`.
+    - `HYSTERIA2`: `hysteria2://` через `clients/links` и `/sub/<subId>` с `alpn=h3` и SNI основного домена.
+15. **Subscriptions**: `vless_subscriptions` (`sub`, `json`, `clash`) `PASS` в `preview08-existing-results.json`; VPN подписки `/sub/<subId>` (`WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`) и `/json/<subId>` (`WIREGUARD`) подтверждены по HTTPS с проверкой SAN/CA на подписочном домене.
+16. **Fresh installation**: **PASS** на чистой Debian 13 VM ([preview08-fresh-summary.json](preview08-fresh-summary.json)) через `install-preview.sh --public-bind 10.77.5.1 ... --awg-subnet 10.88.32.0/24 --wg-subnet 10.89.8.0/24 --wg-port 51820 --awg-port 29177 --hy2-port 24443 --panel-inbounds` (`native_journal: READY`, `vpn_journal: READY`, `sqlite_integrity: ok`).
+17. **Safe repeat**: **PASS** ([preview08-repeat-summary.json](preview08-repeat-summary.json)) — повтор с идентичными аргументами завершился кодом `0`, сохранил все 6 `id`, клиентов, ключи и SHA256 `settings`/`streamSettings` (`preserved_exact_identity: true`).
+18. **Recovery**: `preview-panel-inbounds.json` и `preview-vpn-inbounds.json` fail-closed; переход в `RECOVERY_REQUIRED` без удаления VLESS подтверждён модульным тестом в [test_panel_api.py](../../../../tests/integration/test_panel_api.py) и зафиксирован в реальной VM при первом диагностированном сбое. Автоматический rollback после `READY` отсутствует по дизайну ([RECOVERY.md](../../../RECOVERY.md)).
+19. **Security**: независимый аудит `Security & QA Reviewer` подтвердил 0 секретов/приватных ключей/токенов/паролей/куки/SQLite/Windows-путей в diff и 9 JSON-отчётах, `0` CRLF, сохранение `100755` на `bootstrap-preview.sh` и `install-preview.sh`, неизменность SHA256 pinned-файлов (`awg_service.py`, `awg_config_candidate.py`, `3xui-pro-fork.service`, `3xui-pro-fork-awg.service`, `HOOK_SCRIPT`), корректные `HttpOnly`/`Secure`/`SameSite=Lax` cookie панели и DNS/HTTP-`308`/TLS CA проверки в [preview08-common-health.json](preview08-common-health.json) (`oom_events: 0`).
+20. **Documentation**: обновлены `README.md`, `GEMINI.md`, `AGENTS.md`, `.agents/rules/*.md`, `docs/ARCHITECTURE.md`, `docs/PROTOCOLS.md` (раздельные секции WG и AWG 3.1), `docs/INSTALLATION.md`, `docs/OPERATIONS.md`, `docs/RECOVERY.md`, `docs/TESTING.md`, `docs/PROJECT_STATUS.md`, `docs/ANTIGRAVITY_HANDOFF.md`, `docs/DECISIONS.md` и этот отчёт.
+21. **Production unchanged**: read-only SSH аудит `de126` (`179.254.154.126`) до и после работы подтвердил неизменность: `3xui-pro-fork.service`, `3xui-pro-fork-awg.service`, `nginx`, `3xui-preview-renew.timer` активны; `3xui-preview-xray.service` inactive; `preview-panel-inbounds.json` `READY` с 3 VLESS; `preview-vpn-inbounds.json` отсутствует; на UDP слушается только `29177` (`amneziawg-go` `pid=85900`), порты `51820` и `24443` отсутствуют.
+22. **Main unchanged**: `origin/main` и локальный `main` не изменялись — `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`.
+23. **Оставшиеся ограничения**: отмена проверки legacy `/30` и AWG 1.x/2.x клиентских профилей (синтетические профили проверены, production ключи не тронуты); отсутствует full binary updater и power-loss recovery журналов; `kernelMode: true` AWG не используется; серверный MTU `1420` не меняется; embedded AWG 3.1 перезапускает Xray на ~30s reconcile-тике при изменении клиентов; выкатка на production требует отдельного разрешения.
 
-Changed runtime integration files are a new `release/preview_vpn_inbounds.py` only; existing P0/P1/P3 renderer, API client, migration code and READY schema remain unchanged. Added targeted guards and laboratory acceptance helpers. Installer orchestration is intentionally unchanged until complete installation/repeat/recovery and existing AWG profile compatibility are qualified.
+---
 
-### Management and storage
+## Отдельная сравнительная таблица: WireGuard vs AWG 3.1
 
-Uses supported `inbounds/add`, `inbounds/setEnable/:id`, `clients/add`, `clients/update/:email`, `clients/del/:email`; SQLite remains owned by panel. WG/AWG use actual peer keys/AllowedIPs; HY2 uses auth, not a VLESS UUID. Panel settings persist protocol-specific keys. Private utility manifest and SQLite/AWG backups stay root-only, never GitHub. Existing native READY bytes and VLESS settings/identities are compared before/after apply.
+| Параметр | WireGuard (`WIREGUARD`) | AWG 3.1 (`AMNEZIAWG-3.1`) |
+|---|---|---|
+| Runtime | Native `xray-linux-amd64` `26.11.9` userspace (`noKernelTun: true`) | Embedded `amneziawgnet` (`amneziawg-go v3.1.20260828`, `kernelMode: false`) в `x-ui` MainPID → loopback SOCKS5 `xray-linux-amd64` |
+| UDP port | `51820` (`--wg-port`, без `29177`) | `29177` (`--awg-port`) |
+| Subnet | `10.89.8.0/24` (`--wg-subnet`) | `10.88.32.0/24` (`--awg-subnet`; `/30` в `--vless-only`) |
+| Server keys | Separate (`xray` pure-Python X25519 `secretKey`) | Separate (`awg` tools X25519 + `HeaderProtectionKey` + `Jc`/`Jmin`/`Jmax`/`S1`-`S4`/`H1`-`H4`) |
+| Client keys | Separate (RFC 7748 X25519, отдельные клиенты `clients.wg_*`) | Separate (`awg genkey`/`pubkey`, отдельные клиенты `clients.wg_*`) |
+| Inbound | ID `4`, tag `WIREGUARD`, protocol `wireguard` | ID `5`, tag `AMNEZIAWG-3.1`, protocol `amneziawg` |
+| UI/API | Нативный UI (`Inbounds`/`Clients`) + API + `preview_wireguard.py` | Нативный UI (`Inbounds`/`Clients`) + API + `preview_amneziawg31.py` |
+| Client creation | `clients/add` (`starter-wireguard` + E2E клиенты), экспорт `.conf`/`wireguard://`/`/sub`/`/json` | `clients/add` (`starter-amneziawg31` + E2E клиенты), экспорт `vpn://` → `.conf`/`setconf`, негативный отказ plain WG |
+| Handshake | **PASS** (`linux-kernel-wireguard`, `initial_handshake_epoch: 1795494779`) | **PASS** (`amneziawg-go v3.1.20260828` + `awg v3.1.20260812` positive handshake) |
+| Bidirectional traffic | **PASS** (`tcp_payload_bytes: 65536`, `udp_payload_bytes: 8192`) | **PASS** (`tcp_payload_bytes: 65536`, `udp_datagrams: 16` × `512` B) |
+| Restart | **PASS** (`xray_pid 6628 -> 7610`, repeat install & `systemctl restart`) | **PASS** (`systemctl restart 3xui-pro-fork.service` + 30s SOCKS5 reconcile) |
+| Persistence | **PASS** (состояние ротированных ключей и `enable` в SQLite сохранено) | **PASS** (состояние ротированных ключей и `enable` в SQLite сохранено) |
+| E2E result | **PASS** (10/10 в `preview08-wireguard-results.json` + изоляция в `preview08-six-inbounds-results.json`) | **PASS** (10/10 в `preview08-amneziawg31-results.json` + изоляция в `preview08-six-inbounds-results.json`) |
 
-An unknown row, existing manifest, reserved port, foreign socket, changed AWG identity/parameter or server MTU fails closed. Only explicit lab mode, private lab marker, RFC1918 bind and explicit handoff permit mutation. Production `--apply` is refused. No automatic rollback or replay of ambiguous side effects.
+---
 
-## B. Six inbounds
+## Первоначальные ошибки и точные исправления до финального PASS
 
-Initial laboratory apply created six real native API records, with active UDP29178 WG, UDP29177 AWG3.1, UDP24443 HY2. Ports were selected after observed local TCP/UDP inventory; these are lab choices, not production defaults. Existing VLESS records IDs1/2/3 and native READY were preserved. An inherited unrelated laboratory VLESS fixture was removed only from a new overlay before apply; original VM disk and checkout work remained intact.
+В соответствии с правилом не скрывать первоначальные ошибки зафиксированы все четыре проблемы, выявленные до чистого итогового PASS:
+1. **Fresh install `RECOVERY_REQUIRED` в VM**: на первом VM-прогоне `_validate_awg_row()` в [release/preview_vpn_inbounds.py](../../../../release/preview_vpn_inbounds.py) проверял `server.get('kernelMode') is not False`, тогда как Go-тег `json:"kernelMode,omitempty"` в `3x-ui 3.11.0` опускает `"kernelMode": false` при возврате JSON через `inbounds/list`. Исправлено на `bool(server.get('kernelMode', False))`, покрыто unit-тестом и подтверждено с чистого `disk.qcow2` (`READY`).
+2. **WireGuard `clients/get` mismatch в `wireguard/test_e2e.py`**: первый прогон остановился на сравнении `allowedIPs`, поскольку `clients/get` и `clients/list` в `3x-ui 3.11.0` возвращают CSV-строку (`"10.89.8.2/32"`), а не JSON-массив. Добавлена нормализация `_split_allowed_ips()` без изменения контракта API.
+3. **AmneziaWG 3.1 TCP reset после CRUD в `amneziawg31/test_e2e.py` и `test_six_inbounds.py`**: добавление/изменение/удаление клиента ставит `SetToNeedRestart()`, а ~30-секундный reconcile-тик `3x-ui 3.11.0` принудительно перезапускает Xray из-за password-auth SOCKS5 inbound; старая 0.5s пауза приводила к TCP `ConnectionResetError(104)` после успешного UDP handshake. Добавлено детерминированное ожидание конвергенции аккаунтов SOCKS5 в `config.json` и `lsi`.
+4. **Транзиентный 30s timeout Chromium в Playwright (`networkidle`)**: после рестарта `test_six_inbounds` первичный переход к `https://de126.alexsun55.ru/` превысил 30s (`nameserver 127.0.0.53` недоступен внутри `preview-client` netns при высокой нагрузке QEMU); повторный запуск того же чистого UI-сценария [preview08-six-inbounds-panel.cjs](../../../../tests/xonix/preview08-six-inbounds-panel.cjs) и common health check [preview08-common-health.json](preview08-common-health.json) завершились `PASS`.
 
-| Inbound | Panel UI | Backend | Client management | Final check |
-|---|---|---|---|---|
-| P0 | Native API record; historical UI accepted | Panel Xray, existing listener | Existing native clients preserved | 65536bytes each direction PASS, counter correlation PASS |
-| P1 | Native API record; historical UI accepted | Panel Xray behind Nginx TLS/H2 | Existing native clients preserved | 65536bytes each direction PASS, counter correlation PASS |
-| P3 | Native API record; historical UI accepted | Panel Xray REALITY/Vision | Existing native clients preserved | 65536bytes each direction PASS, targeted counter correlation PASS |
-| WireGuard | Native record; new visual UI test not run | Native Xray UDP29178 | TCP/UDP, restart, disable/enable, delete/recreate PASS | PASS in first final run |
-| AmneziaWG3.1 | Native record; new visual UI test not run | Embedded panel manager UDP29177 | TCP/UDP, restart, disable/enable, delete/recreate PASS | Scoped relay PASS after targeted fixes; old profile routing NOT ACCEPTED |
-| Hysteria2 | Native record; new visual UI test not run | Native Xray QUIC/TLS UDP24443 | TCP/UDP, restart, disable/enable, delete/recreate PASS | PASS after targeted fixture/readiness fixes |
+## Файлы доказательств
 
-## C. Final validation and limits
-
-Historical **318/318 PASS** is reused from [07A](../preview-xonix-07a/test-results.md), not rerun and not counted as new results. Existing 07B local evidence records production READY/native VLESS/AWG acceptance. Older WG/HY2 `PASS_CORE_PAIR` belongs to the historical main worktree branch, `tools/linux_stage06/retained_core.py`, `docs/tests/RETAINED_PROFILES_E2E.md` and `docs/stages/evidence/stage06/retained-core.json`. It tests Xray userspace pairs in controlled fixtures, not this six-inbound panel; no ordinary separate WG/HY2 daemon was adopted.
-
-The one final new-VPN harness initially returned FAIL: WG passed all traffic/lifecycle checks; AWG CLI rejected boolean `false` (requires `on/off` or `0/1`), and HY2 client referenced an ephemeral CA path removed at reboot. These are recorded fixture failures, not hidden successful checks. Targeted correction serializes AWG booleans correctly and uses the persisted managed certificate as explicit trust without disabling verification. Only AWG/HY2 are rechecked; WG history is retained.
-
-TCP payload is 65536 bytes each direction; UDP is sixteen512-byte responses each direction. Laboratory benchmark destination is explicitly redirected through protocol-constrained Xray routing to a controlled namespace origin. This proves the tested proxy/relay path; it does not qualify arbitrary internet egress, provider firewall, ICMP, old standalone AWG server-address routing, all OS clients, or full-tunnel NAT. Production MTU and certificates were not changed. Client MTU1368 remains specific to the earlier measured external path.
-
-### Actual results
-
-- [First final harness](preview08-final-results.json): FAIL retained; WG lifecycle PASS, AWG/HY2 fixture failures as above.
-- [Targeted fixture recheck](preview08-targeted-results.json): lifecycle PASS for AWG/HY2; initial/restart still FAIL because harness sampled before runtime/origin readiness and AWG process startup exceeded its10s budget in TCG.
-- [Targeted startup/restart recheck](preview08-restart-recheck.json): PASS. Replaced fixed sleeps with observed native state, exact UDP owner PIDs and stable listeners; origin readiness observed; client startup bound30s. Payload/authorization assertions unchanged. Only the failed startup/restart cases were repeated.
-- Original P0/P1/P3 smoke: all3 client transfers passed65536bytes each direction; P0/P1 counters passed. Immediate P3 counter sample lagged and subscription-root incorrectly expected XONIX instead of404. Both failures retained in [initial smoke](preview08-existing-initial-results.json).
-- [Targeted P3/web smoke](preview08-existing-results.json): P3 counters69437uplink/69917downlink; verified HTTPS main/XONIX, TLS subscription-domain root404, raw/JSON/Clash VLESS subscription responses, Nginx syntax, SQLite integrity`ok`, panel/Nginx/renew timer active, native READY, six API records, OOM0. Subscription smoke verifies fetch/nonempty formats; full cryptographic content validation is reused from07A/07B, not newly claimed for VPN exports.
-- [Targeted guards](targeted-tests.log):6/6PASS. AST, relative documentation links, six rule frontmatters and known-production-secret/private-PEM/personal-path scan PASS. [New source hashes](source-sha256.json).
-
-No full historical regression or load test was repeated. New browser UI/canvas interaction, VPN subscription/profile exports and edit/key-rotation lifecycle are NOT_RUN; previous XONIX browser acceptance is reused. All six had actual working backends in this lab, but installer packaging and existing AWG profile preservation remain unaccepted, so the overall stage is INCOMPLETE.
-
-### Production safety
-
-Read-only SSH observed Debian13, native journal READY, exactly three existing VLESS records, AWG UDP29177, active panel/AWG/Nginx. No production mutation command was issued. No production SQLite/inbound/peer, service restart, DNS, SSH, firewall, certificate or READY rollback was performed. Source implementation remains `a3a6b991eb21dc2b4822c4fae13426d91e19db48` per 07B evidence; audit of live state is separate from source provenance.
-
-### Concrete remaining work
-
-1. Qualify existing standalone AWG client profile and server tunnel-address semantics against embedded routing. The old profile routes only the server tunnel address; stopping `xproawg0` removes that address from the host, while embedded gVisor owns it only inside the panel. Benchmark relay traffic does not prove old host-service access. Native `kernelMode:true` instead creates `xui-awg<ID>`, requires a different pinned kernel module3.1.20260906, headers/DKMS and nft/NAT qualification; it cannot simply adopt the old userspace interface. Minimum compatible route: a genuine panel backend adapter preserving the existing userspace TUN/service and implementing peer CRUD, or a separately qualified kernel/host-address migration. Do not bypass lab guards on production. Sources: [kernel manager](https://github.com/MHSanaei/3x-ui/blob/v3.11.0/internal/amneziawgkern/manager.go), [embedded manager](https://github.com/MHSanaei/3x-ui/blob/v3.11.0/internal/amneziawgnet/manager.go), [relay](https://github.com/MHSanaei/3x-ui/blob/v3.11.0/internal/amneziawgnet/relay.go).
-2. Integrate the qualified backend into installer provisioning, safe repeat and recovery with separate VPN ownership state, preserving native READY unchanged.
-3. Qualify native profile/subscription export, client edit/key changes, visual UI and required common smoke against final installed layout. Current harness verifies fixture profiles and disable/delete/restart, not every subscription format.
-4. Produce a pinned backup/preflight/apply command only after these gates. There is no safe production apply command in this revision; inventing one would violate the handoff requirements.
-
-## D. GitHub and repository
-
-Branch `preview/xonix-standalone-debian13`; base `d2d184f9877f3c49fbd2e1987f35ebb5c97e9cb6`; implementation baseline `a3a6b991eb21dc2b4822c4fae13426d91e19db48`. Main before work: `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`.
-
-Publication is a laboratory preview/documentation handoff, not a production-stable release. Verified implementation commit and remote HEAD at publication: `2f275b6be69531eed80cdbcab5015369782afc43`; tree `8f45d73fc40495fca1c4f500c278050a13f9f3d2`. The current evidence-only reporting commit follows that checked implementation; resolve its exact SHA from branch HEAD. A commit cannot contain its own final hash. No force push, merge or main mutation is permitted. Existing unrelated untracked evidence was preserved and excluded from this commit. Main was rechecked unchanged at `7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`. The initial local HTTPS attempt failed403 without changing the branch; publication used the connected authorized GitHub account and a non-forced fast-forward with expected-parent check. Published README/GEMINI/AGENTS/handoff/rule blobs were fetched successfully; the fetched tree exactly matched the checked local index. Both installer entrypoints are tracked executable100755.
-
-Structure: root bootstrap/install entrypoints and agent context; `release/` pinned runtime orchestration; `assets/` XONIX; `tests/release/` targeted guards/acceptance; `docs/` architecture/protocols/install/operations/recovery/testing/status/handoff; `.agents/rules/` six scoped rules; `docs/stages/evidence/` preserved history and this report. Dependency attribution/licenses remain in [distribution](../../../../release/distribution/README.md).
-
-## E. Gemini Antigravity
-
-[GEMINI.md](../../../../GEMINI.md), [AGENTS.md](../../../../AGENTS.md), six [.agents/rules](../../../../.agents/rules/architecture.md) and [handoff](../../../ANTIGRAVITY_HANDOFF.md) are prepared. [README](../../../../README.md) links the documentation. Each rule declares supported YAML `trigger: model_decision` and description per [official rules documentation](https://antigravity.google/docs/rules/).
-
-The repository can be studied without the previous chat. Documents explicitly distinguish supported upstream protocols, laboratory integration, default installer and production. They do not claim PREVIEW-XONIX-08 PASS or authorize production changes.
+- [preview08-fresh-summary.json](preview08-fresh-summary.json) — свежая установка 6 inbound (`READY`/`READY`)
+- [preview08-repeat-summary.json](preview08-repeat-summary.json) — безопасный идемпотентный повтор
+- [preview08-existing-results.json](preview08-existing-results.json) — P0/P1/P3, XONIX HTTPS, VLESS subscriptions
+- [preview08-wireguard-results.json](preview08-wireguard-results.json) — независимый WireGuard E2E (`PASS`)
+- [preview08-amneziawg31-results.json](preview08-amneziawg31-results.json) — независимый AmneziaWG 3.1 E2E (`PASS`)
+- [preview08-hysteria2-results.json](preview08-hysteria2-results.json) — независимый Hysteria2 E2E (`PASS`)
+- [preview08-six-inbounds-results.json](preview08-six-inbounds-results.json) — одновременная работа и изоляция всех 6 inbound (`PASS`)
+- [preview08-ui-results.json](preview08-ui-results.json) — Playwright Chromium UI (`Inbounds`, `Clients`, `XONIX`) (`PASS`)
+- [preview08-common-health.json](preview08-common-health.json) — HTTP `308`, `nginx -t`, SQLite `ok`, systemd, `oom_events: 0`
+- [source-sha256.json](source-sha256.json) — контрольные суммы исходников и тестов

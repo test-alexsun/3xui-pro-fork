@@ -29,6 +29,7 @@ import preview_acme as acme
 import preview_nginx_packages as nginx_packages
 import preview_two_domain as two
 import preview_panel_inbounds as native
+import preview_vpn_inbounds as vpn
 import upgrade_candidate as ownership
 
 DATA = Path('/var/lib/3xui-pro-fork')
@@ -511,10 +512,17 @@ def main():
     p.add_argument('--p0-port', type=int, default=8443, help='strict-mode REALITY XHTTP public TCP port')
     p.add_argument('--p3-port', type=int, default=9443, help='strict-mode REALITY Vision public TCP port')
     p.add_argument('--subscription-port', type=int, default=2096, help='strict-mode loopback subscription port')
-    p.add_argument('--panel-inbounds', action='store_true', help='strict native panel ownership of real P0/P1/P3')
+    p.add_argument('--panel-inbounds', action='store_true', help='strict native panel ownership of real inbounds')
     p.add_argument('--migrate-panel-inbounds', action='store_true', help='explicit opt-in handoff of an existing standalone installation')
     p.add_argument('--components', type=Path, help='local verified candidate directory; default fetches pinned components')
-    p.add_argument('--awg-subnet', required=True, help='unused private IPv4 /30')
+    p.add_argument('--awg-subnet', required=True, help='unused private IPv4 subnet (/16../30 for six-inbound native mode, /30 for standalone AWG)')
+    p.add_argument('--wg-subnet', default='10.89.8.0/24', help='unused private IPv4 subnet for WireGuard (/16../30)')
+    p.add_argument('--wg-port', type=int, default=51820, help='WireGuard public UDP port')
+    p.add_argument('--awg-port', type=int, default=29177, help='AmneziaWG 3.1 public UDP port')
+    p.add_argument('--hy2-port', type=int, default=24443, help='Hysteria2 public UDP port')
+    p.add_argument('--add-vpn-inbounds', action='store_true', help='explicit opt-in to add WG/AWG3.1/HY2 onto an existing native P0/P1/P3 deployment')
+    p.add_argument('--handoff-standalone-awg', action='store_true', help='explicit opt-in to stop/disable standalone AWG unit during --add-vpn-inbounds')
+    p.add_argument('--vless-only', action='store_true', help='keep legacy 3-VLESS + standalone AWG layout on fresh native install')
     p.add_argument('--test-mode', action='store_true', help='use isolated HTTP port 18080')
     p.add_argument('--sandbox-tls-cert', type=Path, help='root-owned test certificate, sandbox only')
     p.add_argument('--sandbox-tls-key', type=Path, help='root-only test private key, sandbox only')
@@ -537,6 +545,12 @@ def main():
         p.error('public ACME and subscription options require --public-bind')
     if bool(args.acme_test_directory) != bool(args.acme_test_ca):
         p.error('both ACME test directory and CA are required')
+    if args.add_vpn_inbounds and not args.panel_inbounds:
+        raise RuntimeError('--add-vpn-inbounds requires --panel-inbounds')
+    if args.handoff_standalone_awg and not args.add_vpn_inbounds:
+        raise RuntimeError('--handoff-standalone-awg requires --add-vpn-inbounds')
+    if args.vless_only and args.add_vpn_inbounds:
+        raise RuntimeError('--vless-only cannot be combined with --add-vpn-inbounds')
     if (args.sandbox_tls_cert is None) != (args.sandbox_tls_key is None):
         raise RuntimeError('sandbox certificate and key must be provided together')
     if args.sandbox_tls_cert and not args.test_mode:
@@ -626,6 +640,24 @@ def install(args, components):
                 if path.stat().st_mode & 0o777 != mode or digest(path.read_bytes()) != old['transport'].get(name):
                     raise RuntimeError('managed transport file changed externally')
     fresh = not (DATA.exists() or DATA.is_symlink())
+    vpn_exists = vpn.STATE.exists() or vpn.STATE.is_symlink()
+    if vpn_exists and args.vless_only:
+        raise RuntimeError('existing six-inbound VPN state refuses --vless-only')
+    six_inbounds = bool((fresh and args.panel_inbounds and not args.vless_only) or vpn_exists or args.add_vpn_inbounds)
+    awg_unit_active = False
+    if not fresh and not vpn_exists and args.add_vpn_inbounds and shutil.which('systemctl'):
+        awg_unit_active = ownership.service_properties(vpn.AWG_UNIT).get('ActiveState') == 'active'
+        if awg_unit_active and not args.handoff_standalone_awg:
+            raise RuntimeError('existing standalone AWG service requires explicit --handoff-standalone-awg')
+    if six_inbounds:
+        reserved_layout = (layout['p0_port'], layout['p3_port'], layout['subscription_port']) if layout else ()
+        vpn.validate_vpn_spec(
+            args.wg_port, args.awg_port, args.hy2_port, args.wg_subnet, args.awg_subnet,
+            reserved_ports=reserved_layout,
+            check_routes=bool(shutil.which('ip')) and not vpn_exists,
+            ignore_awg_dev=bool(args.handoff_standalone_awg),
+        )
+    pre_require_awg = awg_unit_active if (not fresh and not vpn_exists and args.add_vpn_inbounds) else (not six_inbounds)
     if layout and fresh and shutil.which('ss'):
         two.check_subscription_port(layout)
     manifest = verify_package(components)
@@ -651,9 +683,12 @@ def install(args, components):
             transport.check_available(args.public_bind, layout)
             transport.check_nginx()
     if not (DATA.exists() or DATA.is_symlink()):
-        run(sys.executable, str(components / 'install_candidate.py'),
-            '--awg-endpoint', args.domain, '--awg-subnet', args.awg_subnet)
-    installed = ownership.inspect_installed(manifest)
+        if six_inbounds:
+            run(sys.executable, str(components / 'install_candidate.py'), '--no-standalone-awg')
+        else:
+            run(sys.executable, str(components / 'install_candidate.py'),
+                '--awg-endpoint', args.domain, '--awg-subnet', args.awg_subnet)
+    installed = ownership.inspect_installed(manifest, require_standalone_awg=pre_require_awg)
     if panel_managed:
         native.verify_ready()
     ownership.root_dir(DATA, private=True)
@@ -664,8 +699,9 @@ def install(args, components):
         ensure_web_directories()
         html = (REPO / 'assets/decoy/xonix/index.html').read_bytes()
         if layout:
-            two.panel_setup(args.domain, layout, fresh, atomic, regular, lambda: ownership.inspect_installed(manifest))
-            installed = ownership.inspect_installed(manifest)
+            two.panel_setup(args.domain, layout, fresh, atomic, regular,
+                            lambda: ownership.inspect_installed(manifest, require_standalone_awg=pre_require_awg))
+            installed = ownership.inspect_installed(manifest, require_standalone_awg=pre_require_awg)
         subscriptions = (subscription_config(DATA / 'x-ui.db', args.subscription_domain or args.domain,
                          installed['processes']['3xui-pro-fork.service'],
                          443 if routed else 18443) if args.sandbox_subscriptions or args.public_subscriptions or layout else None)
@@ -694,7 +730,24 @@ def install(args, components):
             acme.enable_renewal(args.acme_test_ca, atomic, regular, run)
             if getattr(args, 'panel_inbounds', False) and not panel_managed:
                 native.migrate(manifest, atomic, test_origin=(urllib.parse.urlsplit(args.acme_test_directory).hostname
-                    if args.acme_test_directory else None))
+                    if args.acme_test_directory else None), require_standalone_awg=pre_require_awg)
+            if six_inbounds:
+                if vpn_exists:
+                    vpn.verify_ready(args.wg_port, args.awg_port, args.hy2_port, args.wg_subnet, args.awg_subnet)
+                else:
+                    web_state = native.private_json(STATE)
+                    vpn.provision_vpn_inbounds(
+                        native.api_client(),
+                        web_state,
+                        wg_port=args.wg_port,
+                        awg_port=args.awg_port,
+                        hy2_port=args.hy2_port,
+                        wg_subnet=args.wg_subnet,
+                        awg_subnet=args.awg_subnet,
+                        handoff_standalone_awg=args.handoff_standalone_awg,
+                        atomic_fn=atomic,
+                    )
+                ownership.inspect_installed(manifest, require_standalone_awg=False)
         else:
             publish(args.domain, port, html, sandbox=sandbox,
                     subscriptions=subscriptions, transports=args.sandbox_transports)
