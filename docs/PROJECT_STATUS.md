@@ -14,7 +14,7 @@
 | AWG 3.1 | Отдельный реальный runtime, не native Inbounds peer management |
 | WG / HY2 | Не создаются installer; optional lab utility PREVIEW-08 отдельно от default lifecycle |
 | Новая lab проверка |6real API records/listeners, P0/P1/P3 traffic, WG/AWG/HY2 TCP/UDP+restart+disable/delete/recreate PASS после targeted fixture fixes; initial FAIL сохранены |
-| Новая публикация | SHA и remote verification только в [08 evidence](stages/evidence/preview-xonix-08/test-results.md) после фактического push |
+| Проверенная preview implementation | `2f275b6be69531eed80cdbcab5015369782afc43`, remote/tree проверены; последующий commit только фиксирует publication evidence |
 
 ## Завершено ранее
 
