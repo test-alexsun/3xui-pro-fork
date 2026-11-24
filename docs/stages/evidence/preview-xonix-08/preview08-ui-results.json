@@ -1,0 +1,81 @@
+{
+  "status": "PASS",
+  "scope": "disposable Debian13 preview-08 UI",
+  "rfc1918_lab_bind": true,
+  "tls_pinning": "PASS",
+  "step_a_xonix": {
+    "status": "PASS",
+    "http_status": 200,
+    "title_matched": true,
+    "canvas_present": true,
+    "canvas_box": {
+      "width": 1024,
+      "height": 683
+    },
+    "console_error_count": 0,
+    "pageerror_count": 0
+  },
+  "step_b_panel_inbounds": {
+    "status": "PASS",
+    "credentials_source": "journalctl",
+    "auth_cookies": {
+      "count": 1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite_lax": true
+    },
+    "total_visible_rows": 6,
+    "all_six_visible": true,
+    "all_six_enabled": true,
+    "inbounds": {
+      "VLESS-REALITY-XHTTP-H2": {
+        "visible": true,
+        "enabled": true,
+        "toggle_type": "ant-switch",
+        "row_matches": 1
+      },
+      "VLESS-TLS-XHTTP-H2": {
+        "visible": true,
+        "enabled": true,
+        "toggle_type": "ant-switch",
+        "row_matches": 1
+      },
+      "VLESS-REALITY-VISION": {
+        "visible": true,
+        "enabled": true,
+        "toggle_type": "ant-switch",
+        "row_matches": 1
+      },
+      "WIREGUARD": {
+        "visible": true,
+        "enabled": true,
+        "toggle_type": "ant-switch",
+        "row_matches": 1
+      },
+      "AMNEZIAWG-3.1": {
+        "visible": true,
+        "enabled": true,
+        "toggle_type": "ant-switch",
+        "row_matches": 1
+      },
+      "HYSTERIA2": {
+        "visible": true,
+        "enabled": true,
+        "toggle_type": "ant-switch",
+        "row_matches": 1
+      }
+    },
+    "console_error_count": 3,
+    "pageerror_count": 0
+  },
+  "step_c_clients": {
+    "status": "PASS",
+    "table_loaded": true,
+    "email_column_found": false,
+    "rendered_row_count": 6,
+    "non_empty_email_count": 6,
+    "console_error_count": 0,
+    "pageerror_count": 0
+  },
+  "domain": "de126.alexsun55.ru"
+}

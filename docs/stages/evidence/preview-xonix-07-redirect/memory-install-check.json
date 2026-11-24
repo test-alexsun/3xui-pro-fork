@@ -1,0 +1,8 @@
+{
+  "mem_total_kib": 991164,
+  "reserve_mib": 96,
+  "initial_available_kib": 747880,
+  "minimum_available_kib": 313432,
+  "samples": 4430,
+  "oom_kill_delta": 0
+}

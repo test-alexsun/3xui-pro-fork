@@ -1,0 +1,336 @@
+{
+  "subscription_and_three_profiles": {
+    "status": "PASS",
+    "label": "initial",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": false
+      }
+    ],
+    "server_inbound_counter_delta": {
+      "P0": {
+        "uplink": 67385,
+        "downlink": 68737
+      },
+      "P1": {
+        "uplink": 67385,
+        "downlink": 68737
+      },
+      "P3": {
+        "uplink": 73735,
+        "downlink": 69792
+      }
+    }
+  },
+  "wrong_uuid_denied": {
+    "status": "PASS",
+    "label": "wrong-uuid",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      }
+    ]
+  },
+  "customer_survives_panel_restart": {
+    "status": "PASS",
+    "label": "after-panel-restart",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": false
+      }
+    ],
+    "server_inbound_counter_delta": {
+      "P0": {
+        "uplink": 67385,
+        "downlink": 68737
+      },
+      "P1": {
+        "uplink": 67385,
+        "downlink": 68737
+      },
+      "P3": {
+        "uplink": 69885,
+        "downlink": 69732
+      }
+    }
+  },
+  "uuid_edit_applies_without_manual_xray_sync": {
+    "status": "PASS",
+    "old_uuid_denied": {
+      "status": "PASS",
+      "label": "old-uuid-after-edit",
+      "results": [
+        {
+          "profile": "P0",
+          "expected_allowed": false,
+          "actual_allowed": false,
+          "uploaded_payload_bytes": 0,
+          "downloaded_verified_payload_bytes": 0,
+          "h2": false
+        },
+        {
+          "profile": "P1",
+          "expected_allowed": false,
+          "actual_allowed": false,
+          "uploaded_payload_bytes": 0,
+          "downloaded_verified_payload_bytes": 0,
+          "h2": false
+        },
+        {
+          "profile": "P3",
+          "expected_allowed": false,
+          "actual_allowed": false,
+          "uploaded_payload_bytes": 0,
+          "downloaded_verified_payload_bytes": 0,
+          "h2": false
+        }
+      ]
+    },
+    "new_subscription_uuid_works": {
+      "status": "PASS",
+      "label": "edited",
+      "results": [
+        {
+          "profile": "P0",
+          "expected_allowed": true,
+          "actual_allowed": true,
+          "uploaded_payload_bytes": 65536,
+          "downloaded_verified_payload_bytes": 65536,
+          "h2": true
+        },
+        {
+          "profile": "P1",
+          "expected_allowed": true,
+          "actual_allowed": true,
+          "uploaded_payload_bytes": 65536,
+          "downloaded_verified_payload_bytes": 65536,
+          "h2": true
+        },
+        {
+          "profile": "P3",
+          "expected_allowed": true,
+          "actual_allowed": true,
+          "uploaded_payload_bytes": 65536,
+          "downloaded_verified_payload_bytes": 65536,
+          "h2": false
+        }
+      ],
+      "server_inbound_counter_delta": {
+        "P0": {
+          "uplink": 67385,
+          "downlink": 68737
+        },
+        "P1": {
+          "uplink": 67385,
+          "downlink": 68737
+        },
+        "P3": {
+          "uplink": 69762,
+          "downlink": 69959
+        }
+      }
+    }
+  },
+  "native_repeat_preserves_edited_customer": {
+    "status": "PASS",
+    "identities_keys_certificate_preserved": true,
+    "native_process_not_restarted_by_repeat": true,
+    "data": {
+      "status": "PASS",
+      "label": "after-repeat",
+      "results": [
+        {
+          "profile": "P0",
+          "expected_allowed": true,
+          "actual_allowed": true,
+          "uploaded_payload_bytes": 65536,
+          "downloaded_verified_payload_bytes": 65536,
+          "h2": true
+        },
+        {
+          "profile": "P1",
+          "expected_allowed": true,
+          "actual_allowed": true,
+          "uploaded_payload_bytes": 65536,
+          "downloaded_verified_payload_bytes": 65536,
+          "h2": true
+        },
+        {
+          "profile": "P3",
+          "expected_allowed": true,
+          "actual_allowed": true,
+          "uploaded_payload_bytes": 65536,
+          "downloaded_verified_payload_bytes": 65536,
+          "h2": false
+        }
+      ],
+      "server_inbound_counter_delta": {
+        "P0": {
+          "uplink": 67385,
+          "downlink": 68737
+        },
+        "P1": {
+          "uplink": 67385,
+          "downlink": 68737
+        },
+        "P3": {
+          "uplink": 69692,
+          "downlink": 69744
+        }
+      }
+    }
+  },
+  "expired_customer_denied": {
+    "status": "PASS",
+    "label": "expired",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      }
+    ]
+  },
+  "disabled_customer_denied": {
+    "status": "PASS",
+    "label": "disabled",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      }
+    ]
+  },
+  "deleted_customer_denied": {
+    "status": "PASS",
+    "label": "deleted",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": false,
+        "actual_allowed": false,
+        "uploaded_payload_bytes": 0,
+        "downloaded_verified_payload_bytes": 0,
+        "h2": false
+      }
+    ]
+  }
+}

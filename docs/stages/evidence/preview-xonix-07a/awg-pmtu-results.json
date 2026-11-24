@@ -1,0 +1,699 @@
+{
+  "status": "PASS_OFF_HOST_CLIENT_FIX",
+  "outer_ipv4_pmtu_measured": 1440,
+  "df_boundary": {
+    "ip_1440": "PASS",
+    "ip_1441": "FRAGMENTATION_NEEDED",
+    "windows_destination_cache_mtu": 1440
+  },
+  "awg_server_mtu": 1420,
+  "physical_server_mtu": 1500,
+  "s4": 12,
+  "outer_ipv4_overhead_bytes": 72,
+  "derived_client_mtu": 1368,
+  "production_server_configuration_changed": false,
+  "payload_matrix": [
+    {
+      "udp_payload_bytes": 64,
+      "inner_ipv4_bytes_unfragmented": 92,
+      "baseline_outer_ip_bytes": [
+        168
+      ],
+      "fixed_client_outer_ip_bytes": [
+        168
+      ],
+      "inner_fragmented_baseline": false,
+      "inner_fragmented_fixed_client": false,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.646,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 92.471,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.176,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 92.022,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 256,
+      "inner_ipv4_bytes_unfragmented": 284,
+      "baseline_outer_ip_bytes": [
+        360
+      ],
+      "fixed_client_outer_ip_bytes": [
+        360
+      ],
+      "inner_fragmented_baseline": false,
+      "inner_fragmented_fixed_client": false,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 90.418,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.141,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.087,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 90.928,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 512,
+      "inner_ipv4_bytes_unfragmented": 540,
+      "baseline_outer_ip_bytes": [
+        616
+      ],
+      "fixed_client_outer_ip_bytes": [
+        616
+      ],
+      "inner_fragmented_baseline": false,
+      "inner_fragmented_fixed_client": false,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 92.054,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 102.864,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.038,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 90.748,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 1000,
+      "inner_ipv4_bytes_unfragmented": 1028,
+      "baseline_outer_ip_bytes": [
+        1112
+      ],
+      "fixed_client_outer_ip_bytes": [
+        1112
+      ],
+      "inner_fragmented_baseline": false,
+      "inner_fragmented_fixed_client": false,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 268.335,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 320.542,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.106,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 90.586,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 1200,
+      "inner_ipv4_bytes_unfragmented": 1228,
+      "baseline_outer_ip_bytes": [
+        1304
+      ],
+      "fixed_client_outer_ip_bytes": [
+        1304
+      ],
+      "inner_fragmented_baseline": false,
+      "inner_fragmented_fixed_client": false,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 378.643,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 244.231,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 90.894,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.371,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 1280,
+      "inner_ipv4_bytes_unfragmented": 1308,
+      "baseline_outer_ip_bytes": [
+        1384
+      ],
+      "fixed_client_outer_ip_bytes": [
+        1384
+      ],
+      "inner_fragmented_baseline": false,
+      "inner_fragmented_fixed_client": false,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 90.772,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 93.313,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 90.888,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.476,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 1350,
+      "inner_ipv4_bytes_unfragmented": 1378,
+      "baseline_outer_ip_bytes": [
+        1464
+      ],
+      "fixed_client_outer_ip_bytes": [
+        1440,
+        120
+      ],
+      "inner_fragmented_baseline": false,
+      "inner_fragmented_fixed_client": true,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 0,
+          "packet_loss_percent": 100.0,
+          "rtt_ms_median": null,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 94.108,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.481,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 94.173,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 1400,
+      "inner_ipv4_bytes_unfragmented": 1428,
+      "baseline_outer_ip_bytes": [
+        1492,
+        104
+      ],
+      "fixed_client_outer_ip_bytes": [
+        1440,
+        168
+      ],
+      "inner_fragmented_baseline": true,
+      "inner_fragmented_fixed_client": true,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 0,
+          "packet_loss_percent": 100.0,
+          "rtt_ms_median": null,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 95.0,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 98.494,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 95.755,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 1440,
+      "inner_ipv4_bytes_unfragmented": 1468,
+      "baseline_outer_ip_bytes": [
+        1492,
+        152
+      ],
+      "fixed_client_outer_ip_bytes": [
+        1440,
+        200
+      ],
+      "inner_fragmented_baseline": true,
+      "inner_fragmented_fixed_client": true,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 0,
+          "packet_loss_percent": 100.0,
+          "rtt_ms_median": null,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 93.788,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.218,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 94.098,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 1460,
+      "inner_ipv4_bytes_unfragmented": 1488,
+      "baseline_outer_ip_bytes": [
+        1492,
+        168
+      ],
+      "fixed_client_outer_ip_bytes": [
+        1440,
+        216
+      ],
+      "inner_fragmented_baseline": true,
+      "inner_fragmented_fixed_client": true,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 0,
+          "packet_loss_percent": 100.0,
+          "rtt_ms_median": null,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 94.762,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 92.345,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 93.744,
+          "emsgsize_count": 0
+        }
+      }
+    },
+    {
+      "udp_payload_bytes": 2048,
+      "inner_ipv4_bytes_unfragmented": 2076,
+      "baseline_outer_ip_bytes": [
+        1492,
+        760
+      ],
+      "fixed_client_outer_ip_bytes": [
+        1440,
+        808
+      ],
+      "inner_fragmented_baseline": true,
+      "inner_fragmented_fixed_client": true,
+      "baseline": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 0,
+          "packet_loss_percent": 100.0,
+          "rtt_ms_median": null,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 101.152,
+          "emsgsize_count": 0
+        }
+      },
+      "client_mtu_1368": {
+        "client_to_server": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 91.503,
+          "emsgsize_count": 0
+        },
+        "server_to_client": {
+          "sent": 5,
+          "received": 5,
+          "packet_loss_percent": 0.0,
+          "rtt_ms_median": 94.186,
+          "emsgsize_count": 0
+        }
+      }
+    }
+  ],
+  "baseline_capture_header_counts": {
+    "client": 472,
+    "server": 425
+  },
+  "fixed_capture_header_count": 534,
+  "icmp_frag_needed_observed_at_container": 0,
+  "baseline_counter_deltas": {
+    "client": {
+      "Ip.Forwarding": 0,
+      "Ip.DefaultTTL": 0,
+      "Ip.InReceives": 210,
+      "Ip.InHdrErrors": 0,
+      "Ip.InAddrErrors": 0,
+      "Ip.ForwDatagrams": 0,
+      "Ip.InUnknownProtos": 0,
+      "Ip.InDiscards": 0,
+      "Ip.InDelivers": 190,
+      "Ip.OutRequests": 242,
+      "Ip.OutDiscards": 0,
+      "Ip.OutNoRoutes": 0,
+      "Ip.ReasmTimeout": 0,
+      "Ip.ReasmReqds": 40,
+      "Ip.ReasmOKs": 20,
+      "Ip.ReasmFails": 0,
+      "Ip.FragOKs": 20,
+      "Ip.FragFails": 0,
+      "Ip.FragCreates": 40,
+      "Ip.OutTransmits": 262,
+      "Icmp.InMsgs": 0,
+      "Icmp.InErrors": 0,
+      "Icmp.InCsumErrors": 0,
+      "Icmp.InDestUnreachs": 0,
+      "Icmp.InTimeExcds": 0,
+      "Icmp.InParmProbs": 0,
+      "Icmp.InSrcQuenchs": 0,
+      "Icmp.InRedirects": 0,
+      "Icmp.InEchos": 0,
+      "Icmp.InEchoReps": 0,
+      "Icmp.InTimestamps": 0,
+      "Icmp.InTimestampReps": 0,
+      "Icmp.InAddrMasks": 0,
+      "Icmp.InAddrMaskReps": 0,
+      "Icmp.OutMsgs": 0,
+      "Icmp.OutErrors": 0,
+      "Icmp.OutRateLimitGlobal": 0,
+      "Icmp.OutRateLimitHost": 0,
+      "Icmp.OutDestUnreachs": 0,
+      "Icmp.OutTimeExcds": 0,
+      "Icmp.OutParmProbs": 0,
+      "Icmp.OutSrcQuenchs": 0,
+      "Icmp.OutRedirects": 0,
+      "Icmp.OutEchos": 0,
+      "Icmp.OutEchoReps": 0,
+      "Icmp.OutTimestamps": 0,
+      "Icmp.OutTimestampReps": 0,
+      "Icmp.OutAddrMasks": 0,
+      "Icmp.OutAddrMaskReps": 0,
+      "Udp.InDatagrams": 190,
+      "Udp.NoPorts": 0,
+      "Udp.InErrors": 0,
+      "Udp.OutDatagrams": 242,
+      "Udp.RcvbufErrors": 0,
+      "Udp.SndbufErrors": 0,
+      "Udp.InCsumErrors": 0,
+      "Udp.IgnoredMulti": 0,
+      "Udp.MemErrors": 0
+    },
+    "server": {
+      "Ip.Forwarding": 0,
+      "Ip.DefaultTTL": 0,
+      "Ip.InReceives": 1240,
+      "Ip.InHdrErrors": 0,
+      "Ip.InAddrErrors": 0,
+      "Ip.ForwDatagrams": 0,
+      "Ip.InUnknownProtos": 0,
+      "Ip.InDiscards": 0,
+      "Ip.InDelivers": 1220,
+      "Ip.OutRequests": 1230,
+      "Ip.OutDiscards": 0,
+      "Ip.OutNoRoutes": 0,
+      "Ip.ReasmTimeout": 0,
+      "Ip.ReasmReqds": 20,
+      "Ip.ReasmOKs": 0,
+      "Ip.ReasmFails": 0,
+      "Ip.FragOKs": 20,
+      "Ip.FragFails": 0,
+      "Ip.FragCreates": 40,
+      "Ip.OutTransmits": 1250,
+      "Icmp.InMsgs": 2,
+      "Icmp.InErrors": 0,
+      "Icmp.InCsumErrors": 0,
+      "Icmp.InDestUnreachs": 0,
+      "Icmp.InTimeExcds": 0,
+      "Icmp.InParmProbs": 0,
+      "Icmp.InSrcQuenchs": 0,
+      "Icmp.InRedirects": 0,
+      "Icmp.InEchos": 2,
+      "Icmp.InEchoReps": 0,
+      "Icmp.InTimestamps": 0,
+      "Icmp.InTimestampReps": 0,
+      "Icmp.InAddrMasks": 0,
+      "Icmp.InAddrMaskReps": 0,
+      "Icmp.OutMsgs": 2,
+      "Icmp.OutErrors": 0,
+      "Icmp.OutRateLimitGlobal": 0,
+      "Icmp.OutRateLimitHost": 0,
+      "Icmp.OutDestUnreachs": 0,
+      "Icmp.OutTimeExcds": 0,
+      "Icmp.OutParmProbs": 0,
+      "Icmp.OutSrcQuenchs": 0,
+      "Icmp.OutRedirects": 0,
+      "Icmp.OutEchos": 0,
+      "Icmp.OutEchoReps": 2,
+      "Icmp.OutTimestamps": 0,
+      "Icmp.OutTimestampReps": 0,
+      "Icmp.OutAddrMasks": 0,
+      "Icmp.OutAddrMaskReps": 0,
+      "Udp.InDatagrams": 194,
+      "Udp.NoPorts": 0,
+      "Udp.InErrors": 0,
+      "Udp.OutDatagrams": 191,
+      "Udp.RcvbufErrors": 0,
+      "Udp.SndbufErrors": 0,
+      "Udp.InCsumErrors": 0,
+      "Udp.IgnoredMulti": 0,
+      "Udp.MemErrors": 0
+    }
+  },
+  "fixed_client_counter_delta": {
+    "Ip.Forwarding": 0,
+    "Ip.DefaultTTL": 0,
+    "Ip.InReceives": 261,
+    "Ip.InHdrErrors": 0,
+    "Ip.InAddrErrors": 0,
+    "Ip.ForwDatagrams": 0,
+    "Ip.InUnknownProtos": 0,
+    "Ip.InDiscards": 0,
+    "Ip.InDelivers": 241,
+    "Ip.OutRequests": 247,
+    "Ip.OutDiscards": 0,
+    "Ip.OutNoRoutes": 0,
+    "Ip.ReasmTimeout": 0,
+    "Ip.ReasmReqds": 40,
+    "Ip.ReasmOKs": 20,
+    "Ip.ReasmFails": 0,
+    "Ip.FragOKs": 25,
+    "Ip.FragFails": 0,
+    "Ip.FragCreates": 50,
+    "Ip.OutTransmits": 272,
+    "Icmp.InMsgs": 0,
+    "Icmp.InErrors": 0,
+    "Icmp.InCsumErrors": 0,
+    "Icmp.InDestUnreachs": 0,
+    "Icmp.InTimeExcds": 0,
+    "Icmp.InParmProbs": 0,
+    "Icmp.InSrcQuenchs": 0,
+    "Icmp.InRedirects": 0,
+    "Icmp.InEchos": 0,
+    "Icmp.InEchoReps": 0,
+    "Icmp.InTimestamps": 0,
+    "Icmp.InTimestampReps": 0,
+    "Icmp.InAddrMasks": 0,
+    "Icmp.InAddrMaskReps": 0,
+    "Icmp.OutMsgs": 0,
+    "Icmp.OutErrors": 0,
+    "Icmp.OutRateLimitGlobal": 0,
+    "Icmp.OutRateLimitHost": 0,
+    "Icmp.OutDestUnreachs": 0,
+    "Icmp.OutTimeExcds": 0,
+    "Icmp.OutParmProbs": 0,
+    "Icmp.OutSrcQuenchs": 0,
+    "Icmp.OutRedirects": 0,
+    "Icmp.OutEchos": 0,
+    "Icmp.OutEchoReps": 0,
+    "Icmp.OutTimestamps": 0,
+    "Icmp.OutTimestampReps": 0,
+    "Icmp.OutAddrMasks": 0,
+    "Icmp.OutAddrMaskReps": 0,
+    "Udp.InDatagrams": 241,
+    "Udp.NoPorts": 0,
+    "Udp.InErrors": 0,
+    "Udp.OutDatagrams": 247,
+    "Udp.RcvbufErrors": 0,
+    "Udp.SndbufErrors": 0,
+    "Udp.InCsumErrors": 0,
+    "Udp.IgnoredMulti": 0,
+    "Udp.MemErrors": 0
+  },
+  "raw_headers_retained_privately": true
+}

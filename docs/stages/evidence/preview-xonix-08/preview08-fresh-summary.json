@@ -1,0 +1,128 @@
+{
+  "native_journal": "READY",
+  "vpn_journal": "READY",
+  "sqlite_integrity": "ok",
+  "inbounds": [
+    {
+      "id": 1,
+      "tag": "VLESS-REALITY-XHTTP-H2",
+      "protocol": "vless",
+      "port": 8443,
+      "listen": "10.77.5.1",
+      "enable": true,
+      "client_count": 1,
+      "client_emails": [
+        "preview-P0"
+      ],
+      "settings_sha256": "9b486321e6561b5a60a8181cd653cd1c1df312185677080eee7faa431013f9b9",
+      "stream_sha256": "3854ca6f64b21acdb2a832208e19a7aa94b0f6fca842e5d4d5db07e49a03cb80"
+    },
+    {
+      "id": 2,
+      "tag": "VLESS-TLS-XHTTP-H2",
+      "protocol": "vless",
+      "port": 19441,
+      "listen": "127.0.0.1",
+      "enable": true,
+      "client_count": 1,
+      "client_emails": [
+        "preview-P1"
+      ],
+      "settings_sha256": "917643d5ae313447b7e691cee9dabe6251ae8a7747b4f0b21fcc83acc5355083",
+      "stream_sha256": "e6fb71e152f5d576a66c09484f725c049a8d48d77ebfd31e71ca8da4545dfae1"
+    },
+    {
+      "id": 3,
+      "tag": "VLESS-REALITY-VISION",
+      "protocol": "vless",
+      "port": 9443,
+      "listen": "10.77.5.1",
+      "enable": true,
+      "client_count": 1,
+      "client_emails": [
+        "preview-P3"
+      ],
+      "settings_sha256": "687db5588fcfeecb65f4c7649b0b5415eb0542e8a572ae57aab2a790940b4676",
+      "stream_sha256": "14bb1abf0a44b1459ead194dfdcdfb8a534f23226b93f95e8d2fcda8746e6e07"
+    },
+    {
+      "id": 4,
+      "tag": "WIREGUARD",
+      "protocol": "wireguard",
+      "port": 51820,
+      "listen": "10.77.5.1",
+      "enable": true,
+      "client_count": 1,
+      "client_emails": [
+        "starter-wireguard"
+      ],
+      "settings_sha256": "9ad64d8f3bb7832fb099b84c2fe19a0655883a7360763d135314393451842fde",
+      "stream_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": 5,
+      "tag": "AMNEZIAWG-3.1",
+      "protocol": "amneziawg",
+      "port": 29177,
+      "listen": "10.77.5.1",
+      "enable": true,
+      "client_count": 1,
+      "client_emails": [
+        "starter-amneziawg31"
+      ],
+      "settings_sha256": "42cd78f4018cfd83fd075159f5dfbbe32a2ba7b978af5c0ac93c201f4222d509",
+      "stream_sha256": "44136fa355b3678a1146ad16f7e8649e94fb4fc21fe77e8310c060f61caaff8a"
+    },
+    {
+      "id": 6,
+      "tag": "HYSTERIA2",
+      "protocol": "hysteria",
+      "port": 24443,
+      "listen": "10.77.5.1",
+      "enable": true,
+      "client_count": 1,
+      "client_emails": [
+        "starter-hysteria2"
+      ],
+      "settings_sha256": "0900004b7a5d6d4d91493f7ad8ca60d975da4fef25041a264138005dc270876b",
+      "stream_sha256": "46abd47ff4c801f9c7630c2a417dafdca67cc7acf6f263e1649714a3480a620a"
+    }
+  ],
+  "systemd": {
+    "3xui-pro-fork.service": "active",
+    "nginx": "active",
+    "3xui-preview-renew.timer": "active",
+    "3xui-preview-xray.service": "inactive",
+    "3xui-pro-fork-awg.service": "inactive"
+  },
+  "tcp_listeners": [
+    "LISTEN 0      4096       127.0.0.1:2053  0.0.0.0:* users:((\"x-ui\",pid=3790,fd=10))                                                   ",
+    "LISTEN 0      511        127.0.0.1:18443 0.0.0.0:* users:((\"nginx\",pid=3686,fd=16),(\"nginx\",pid=3685,fd=16),(\"nginx\",pid=3295,fd=16))",
+    "LISTEN 0      4096       127.0.0.1:2096  0.0.0.0:* users:((\"x-ui\",pid=3790,fd=11))                                                   ",
+    "LISTEN 0      4096      127.0.0.54:53    0.0.0.0:* users:((\"systemd-resolve\",pid=368,fd=21))                                         ",
+    "LISTEN 0      4096       127.0.0.1:62789 0.0.0.0:* users:((\"xray-linux-amd6\",pid=3805,fd=6))                                         ",
+    "LISTEN 0      128          0.0.0.0:22    0.0.0.0:* users:((\"sshd\",pid=740,fd=6))                                                     ",
+    "LISTEN 0      511          0.0.0.0:80    0.0.0.0:* users:((\"nginx\",pid=3686,fd=5),(\"nginx\",pid=3685,fd=5),(\"nginx\",pid=3295,fd=5))   ",
+    "LISTEN 0      511        10.77.5.1:443   0.0.0.0:* users:((\"nginx\",pid=3686,fd=14),(\"nginx\",pid=3685,fd=14),(\"nginx\",pid=3295,fd=14))",
+    "LISTEN 0      4096         0.0.0.0:5355  0.0.0.0:* users:((\"systemd-resolve\",pid=368,fd=12))                                         ",
+    "LISTEN 0      4096   127.0.0.53%lo:53    0.0.0.0:* users:((\"systemd-resolve\",pid=368,fd=19))                                         ",
+    "LISTEN 0      511        127.0.0.1:19444 0.0.0.0:* users:((\"nginx\",pid=3686,fd=17),(\"nginx\",pid=3685,fd=17),(\"nginx\",pid=3295,fd=17))",
+    "LISTEN 0      4096       127.0.0.1:19441 0.0.0.0:* users:((\"xray-linux-amd6\",pid=3805,fd=8))                                         ",
+    "LISTEN 0      4096       10.77.5.1:9443  0.0.0.0:* users:((\"xray-linux-amd6\",pid=3805,fd=9))                                         ",
+    "LISTEN 0      4096       10.77.5.1:8443  0.0.0.0:* users:((\"xray-linux-amd6\",pid=3805,fd=7))                                         ",
+    "LISTEN 0      4096       127.0.0.1:11111 0.0.0.0:* users:((\"xray-linux-amd6\",pid=3805,fd=3))                                         ",
+    "LISTEN 0      128             [::]:22       [::]:* users:((\"sshd\",pid=740,fd=7))                                                     ",
+    "LISTEN 0      511             [::]:80       [::]:* users:((\"nginx\",pid=3686,fd=6),(\"nginx\",pid=3685,fd=6),(\"nginx\",pid=3295,fd=6))   ",
+    "LISTEN 0      4096            [::]:5355     [::]:* users:((\"systemd-resolve\",pid=368,fd=14))"
+  ],
+  "udp_listeners": [
+    "UNCONN 0      0          127.0.0.54:53    0.0.0.0:* users:((\"systemd-resolve\",pid=368,fd=20)) ",
+    "UNCONN 0      0       127.0.0.53%lo:53    0.0.0.0:* users:((\"systemd-resolve\",pid=368,fd=18)) ",
+    "UNCONN 0      0      10.0.2.15%ens3:68    0.0.0.0:* users:((\"systemd-network\",pid=633,fd=30)) ",
+    "UNCONN 0      0             0.0.0.0:5355  0.0.0.0:* users:((\"systemd-resolve\",pid=368,fd=11)) ",
+    "UNCONN 0      0           10.77.5.1:29177 0.0.0.0:* users:((\"x-ui\",pid=3790,fd=20))           ",
+    "UNCONN 0      0           10.77.5.1:51820 0.0.0.0:* users:((\"xray-linux-amd6\",pid=3805,fd=14))",
+    "UNCONN 0      0           10.77.5.1:24443 0.0.0.0:* users:((\"xray-linux-amd6\",pid=3805,fd=16))",
+    "UNCONN 0      0                [::]:5355     [::]:* users:((\"systemd-resolve\",pid=368,fd=13))"
+  ]
+}

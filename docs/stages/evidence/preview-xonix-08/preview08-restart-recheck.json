@@ -1,0 +1,27 @@
+{
+  "status": "PASS",
+  "scope": "disposable Debian13 native panel",
+  "targeted_recheck": true,
+  "restart_only": true,
+  "protocols": {
+    "AMNEZIAWG-3.1": {
+      "initial": "PASS",
+      "after_restart": "PASS",
+      "final_listener": "PASS"
+    },
+    "HYSTERIA2": {
+      "initial": "PASS",
+      "after_restart": "PASS",
+      "final_listener": "PASS"
+    }
+  },
+  "final_listeners": {
+    "WIREGUARD": "PASS",
+    "AMNEZIAWG-3.1": "PASS",
+    "HYSTERIA2": "PASS"
+  },
+  "existing_native_preserved": "PASS",
+  "panel_six_records": "PASS",
+  "tcp_payload_bytes_per_direction": 65536,
+  "udp_payload_bytes_per_direction": 8192
+}

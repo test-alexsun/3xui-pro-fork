@@ -1,0 +1,32 @@
+{
+  "http_redirects": {
+    "de126.alexsun55.ru": "308|https://de126.alexsun55.ru/",
+    "de126-sub.alexsun55.ru": "308|https://de126-sub.alexsun55.ru/"
+  },
+  "nginx_syntax": "PASS",
+  "sqlite_integrity": "ok",
+  "systemd": {
+    "3xui-pro-fork.service": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "nginx": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "3xui-preview-renew.timer": {
+      "active": "active",
+      "enabled": "enabled"
+    },
+    "3xui-preview-xray.service": {
+      "active": "inactive",
+      "enabled": "disabled"
+    },
+    "3xui-pro-fork-awg.service": {
+      "active": "inactive",
+      "enabled": "disabled"
+    }
+  },
+  "oom_events": 0,
+  "status": "PASS"
+}

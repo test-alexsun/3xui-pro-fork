@@ -1,0 +1,13 @@
+native-panel-ui EXIT 0
+INBOUNDS_VISIBLE [{"tag":"VLESS-REALITY-XHTTP-H2","present":true},{"tag":"VLESS-TLS-XHTTP-H2","present":true},{"tag":"VLESS-REALITY-VISION","present":true}]
+UI_CLIENT_CREATED_AND_ATTACHED
+
+ui-created-native-data EXIT 0
+{"ui_created_customer": "PASS", "profiles": {"status": "PASS", "label": "ui-created", "results": [{"profile": "P0", "expected_allowed": true, "actual_allowed": true, "uploaded_payload_bytes": 65536, "downloaded_verified_payload_bytes": 65536, "h2": true}, {"profile": "P1", "expected_allowed": true, "actual_allowed": true, "uploaded_payload_bytes": 65536, "downloaded_verified_payload_bytes": 65536, "h2": true}, {"profile": "P3", "expected_allowed": true, "actual_allowed": true, "uploaded_payload_bytes": 65536, "downloaded_verified_payload_bytes": 65536, "h2": false}], "server_counter_delta": {"P0": {"uplink": 67385, "downlink": 68737}, "P1": {"uplink": 67385, "downlink": 68737}, "P3": {"uplink": 74444, "downlink": 69976}}}}
+UI_OWNED_CLIENT_CLEANUP_PASS
+
+xonix-game EXIT 0
+PREVIEW06A_XONIX_BROWSER_HTTPS_PASS
+PREVIEW06A_MISSING_PANEL_API_PASS status=404
+
+FRESH_NATIVE_CHROMIUM_PANEL_AND_XONIX_PASS

@@ -1,0 +1,39 @@
+{
+  "existing_protocols": "PASS",
+  "selected_profiles": [
+    "P0",
+    "P1",
+    "P3"
+  ],
+  "counters": {
+    "P0": {
+      "uplink": 67388,
+      "downlink": 68715
+    },
+    "P1": {
+      "uplink": 67388,
+      "downlink": 68715
+    },
+    "P3": {
+      "uplink": 69726,
+      "downlink": 69750
+    }
+  },
+  "de126.alexsun55.ru_https": "PASS",
+  "de126-sub.alexsun55.ru_https": "PASS",
+  "vless_subscriptions": {
+    "sub": "PASS",
+    "json": "PASS",
+    "clash": "PASS"
+  },
+  "nginx_syntax": "PASS",
+  "sqlite_integrity": "ok",
+  "systemd": {
+    "3xui-pro-fork.service": "active",
+    "nginx": "active",
+    "3xui-preview-renew.timer": "active"
+  },
+  "inbound_count": 6,
+  "native_ready": "READY",
+  "oom": 0
+}

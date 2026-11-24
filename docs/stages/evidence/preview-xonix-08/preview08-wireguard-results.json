@@ -1,0 +1,26 @@
+{
+  "protocol": "WIREGUARD",
+  "status": "PASS",
+  "client_driver": "linux-kernel-wireguard",
+  "port": 51820,
+  "checks": {
+    "backend": "PASS",
+    "inbound": "PASS",
+    "client_config": "PASS",
+    "handshake": "PASS",
+    "tcp_traffic": "PASS",
+    "udp_traffic": "PASS",
+    "crud": "PASS",
+    "restart": "PASS",
+    "persistence": "PASS",
+    "ui_api": "PASS"
+  },
+  "details": {
+    "xray_pid": 6628,
+    "initial_handshake_epoch": 1795494779,
+    "tcp_payload_bytes": 65536,
+    "udp_payload_bytes": 8192,
+    "post_restart_xray_pid": 7610,
+    "delete_verified": "PASS"
+  }
+}

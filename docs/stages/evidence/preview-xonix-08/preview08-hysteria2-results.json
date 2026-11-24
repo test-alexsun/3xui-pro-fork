@@ -1,0 +1,33 @@
+{
+  "protocol": "HYSTERIA2",
+  "status": "PASS",
+  "scope": "disposable Debian13 native panel",
+  "tcp_payload_bytes_per_direction": 65536,
+  "udp_packets": 16,
+  "udp_packet_bytes_per_direction": 512,
+  "checks": {
+    "inbound_and_listener_ownership": "PASS",
+    "client_create_and_export": "PASS",
+    "initial_transfer": "PASS",
+    "rotate_auth_old_denied": "PASS",
+    "rotate_auth_new_transfer": "PASS",
+    "disabled_denied": "PASS",
+    "reenabled_transfer": "PASS",
+    "restart_persistence_listener": "PASS",
+    "restart_persistence_transfer": "PASS",
+    "deleted_denied": "PASS"
+  },
+  "export_validation": {
+    "clients_links_valid": true,
+    "subscription_sub_valid": true,
+    "security": "tls",
+    "alpn": [
+      "h3"
+    ],
+    "sni_matches_domain": true,
+    "tls_verify_enforced": true
+  },
+  "domain": "de126.alexsun55.ru",
+  "subscription_domain": "de126-sub.alexsun55.ru",
+  "port": 24443
+}

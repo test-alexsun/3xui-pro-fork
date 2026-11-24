@@ -1,0 +1,26 @@
+{
+  "status": "PASS",
+  "scope": "disposable Debian 13 six-inbound integration & independence",
+  "checks": {
+    "six_inbounds_active": "PASS",
+    "port_and_ownership_isolation": "PASS",
+    "subnet_and_key_isolation": "PASS",
+    "simultaneous_all_six_traffic": "PASS",
+    "disable_wg_keeps_awg_and_others_alive": "PASS",
+    "disable_awg_keeps_wg_and_others_alive": "PASS",
+    "restart_preserves_all_six": "PASS"
+  },
+  "details": {
+    "ports": {
+      "WIREGUARD": 51820,
+      "AMNEZIAWG-3.1": 29177,
+      "HYSTERIA2": 24443
+    },
+    "subnets": {
+      "WIREGUARD": "10.89.8.0/24",
+      "AMNEZIAWG-3.1": "10.88.32.0/24"
+    },
+    "post_restart_xray_pid": 16101,
+    "post_restart_panel_pid": 16087
+  }
+}

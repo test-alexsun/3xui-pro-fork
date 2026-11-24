@@ -1,0 +1,61 @@
+{
+  "status": "PASS",
+  "post_publication_starter_64k": {
+    "status": "PASS",
+    "label": "published-starters",
+    "results": [
+      {
+        "profile": "P0",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P1",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": true
+      },
+      {
+        "profile": "P3",
+        "expected_allowed": true,
+        "actual_allowed": true,
+        "uploaded_payload_bytes": 65536,
+        "downloaded_verified_payload_bytes": 65536,
+        "h2": false
+      }
+    ]
+  },
+  "server_counter_delta": {
+    "P0": {
+      "uplink": 67385,
+      "downlink": 68737
+    },
+    "P1": {
+      "uplink": 67385,
+      "downlink": 68737
+    },
+    "P3": {
+      "uplink": 74451,
+      "downlink": 69986
+    }
+  },
+  "services": {
+    "nginx.service": "active",
+    "3xui-pro-fork.service": "active",
+    "3xui-pro-fork-awg.service": "active",
+    "3xui-preview-renew.timer": "active",
+    "3xui-preview-xray.service": "inactive"
+  },
+  "nginx_and_xray_config_valid": true,
+  "no_kernel_oom_after_browser": true,
+  "meminfo": {
+    "MemTotal": "2021556 kB",
+    "MemAvailable": "1550076 kB",
+    "SwapTotal": "0 kB"
+  }
+}

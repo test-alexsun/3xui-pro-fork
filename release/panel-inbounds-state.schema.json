@@ -1,0 +1,228 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "urn:3xui-preview:panel-inbounds-state:v1",
+  "type": "object",
+  "required": [
+    "version",
+    "phase",
+    "identity",
+    "profiles",
+    "clients",
+    "backup",
+    "previous_enabled",
+    "history"
+  ],
+  "properties": {
+    "version": {
+      "const": 1
+    },
+    "phase": {
+      "enum": [
+        "PREPARING",
+        "STAGING",
+        "STAGED",
+        "STOPPING_STANDALONE",
+        "ACTIVATING_NATIVE",
+        "READY",
+        "ROLLING_BACK",
+        "ROLLED_BACK",
+        "RECOVERY_REQUIRED"
+      ]
+    },
+    "identity": {
+      "type": "object",
+      "required": [
+        "domain",
+        "address",
+        "layout"
+      ],
+      "properties": {
+        "domain": {
+          "type": "string"
+        },
+        "address": {
+          "type": "string",
+          "format": "ipv4"
+        },
+        "layout": {
+          "type": "object",
+          "required": [
+            "subscription_domain",
+            "p0_port",
+            "p3_port",
+            "subscription_port",
+            "panel_path"
+          ]
+        }
+      },
+      "additionalProperties": false
+    },
+    "profiles": {
+      "type": "object",
+      "propertyNames": {
+        "enum": [
+          "P0",
+          "P1",
+          "P3"
+        ]
+      },
+      "additionalProperties": {
+        "type": "integer",
+        "minimum": 1
+      }
+    },
+    "clients": {
+      "type": "object",
+      "additionalProperties": {
+        "type": "object",
+        "required": [
+          "client",
+          "profiles"
+        ],
+        "properties": {
+          "client": {
+            "type": "object",
+            "required": [
+              "id",
+              "email",
+              "enable",
+              "expiryTime",
+              "totalGB",
+              "subId"
+            ],
+            "properties": {
+              "id": {
+                "type": "string",
+                "format": "uuid"
+              },
+              "email": {
+                "type": "string",
+                "minLength": 1
+              },
+              "enable": {
+                "type": "boolean"
+              },
+              "expiryTime": {
+                "type": "integer"
+              },
+              "totalGB": {
+                "type": "integer"
+              },
+              "subId": {
+                "type": "string",
+                "minLength": 16
+              },
+              "flow": {
+                "const": "xtls-rprx-vision"
+              }
+            },
+            "additionalProperties": false
+          },
+          "profiles": {
+            "type": "array",
+            "items": {
+              "enum": [
+                "P0",
+                "P1",
+                "P3"
+              ]
+            },
+            "minItems": 1,
+            "uniqueItems": true
+          },
+          "inboundIds": {
+            "type": "array",
+            "items": {
+              "type": "integer",
+              "minimum": 1
+            },
+            "uniqueItems": true
+          },
+          "created": {
+            "type": "boolean"
+          },
+          "create_requested": {
+            "type": "boolean"
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "backup": {
+      "type": "string",
+      "pattern": "^/var/lib/3xui-pro-fork/preview-panel-migration-backups/before-[a-f0-9]{16}$"
+    },
+    "previous_enabled": {
+      "type": "string"
+    },
+    "history": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": [
+          "phase",
+          "time"
+        ],
+        "properties": {
+          "phase": {
+            "enum": [
+              "PREPARING",
+              "STAGING",
+              "STAGED",
+              "STOPPING_STANDALONE",
+              "ACTIVATING_NATIVE",
+              "READY",
+              "ROLLING_BACK",
+              "ROLLED_BACK",
+              "RECOVERY_REQUIRED"
+            ]
+          },
+          "time": {
+            "type": "integer",
+            "minimum": 0
+          }
+        },
+        "additionalProperties": false
+      }
+    },
+    "failed_phase": {
+      "enum": [
+        "PREPARING",
+        "STAGING",
+        "STAGED",
+        "STOPPING_STANDALONE",
+        "ACTIVATING_NATIVE",
+        "READY",
+        "ROLLING_BACK",
+        "ROLLED_BACK",
+        "RECOVERY_REQUIRED"
+      ]
+    },
+    "error_class": {
+      "type": "string"
+    }
+  },
+  "additionalProperties": false,
+  "allOf": [
+    {
+      "if": {
+        "properties": {
+          "phase": {
+            "const": "READY"
+          }
+        }
+      },
+      "then": {
+        "properties": {
+          "profiles": {
+            "required": [
+              "P0",
+              "P1",
+              "P3"
+            ]
+          }
+        }
+      }
+    }
+  ]
+}

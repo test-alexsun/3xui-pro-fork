@@ -1,0 +1,26 @@
+{
+  "scope": "read-only production",
+  "journal": "READY",
+  "native_inbound_count": 3,
+  "units": {
+    "3xui-pro-fork.service": [
+      "MainPID=87577",
+      "ActiveState=active",
+      "SubState=running"
+    ],
+    "3xui-pro-fork-awg.service": [
+      "MainPID=85897",
+      "ActiveState=active",
+      "SubState=running"
+    ],
+    "nginx": [
+      "MainPID=85182",
+      "ActiveState=active",
+      "SubState=running"
+    ]
+  },
+  "udp_ports": [
+    29177
+  ],
+  "mutations_issued": false
+}

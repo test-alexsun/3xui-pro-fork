@@ -1,0 +1,49 @@
+{
+  "static_files_checked": 32,
+  "all_static_files_equal_to_post07_backup": true,
+  "xray_processes_unchanged": true,
+  "xray_pids": [
+    85478,
+    85585
+  ],
+  "db_counts": {
+    "clients": 0,
+    "users": 1,
+    "inbounds": 0
+  },
+  "db_integrity": "ok",
+  "api_inbound_count": 0,
+  "meminfo": {
+    "MemTotal": "990564 kB",
+    "MemAvailable": "599516 kB",
+    "SwapTotal": "0 kB"
+  },
+  "oom_events": 0,
+  "public": {
+    "de126.alexsun55.ru": {
+      "certificate_verified": true,
+      "issuer": {
+        "countryName": "US",
+        "organizationName": "Let's Encrypt",
+        "commonName": "YE1"
+      },
+      "notAfter": "Feb 21 08:12:20 2027 GMT",
+      "exact_two_san": true
+    },
+    "de126-sub.alexsun55.ru": {
+      "certificate_verified": true,
+      "issuer": {
+        "countryName": "US",
+        "organizationName": "Let's Encrypt",
+        "commonName": "YE1"
+      },
+      "notAfter": "Feb 21 08:12:20 2027 GMT",
+      "exact_two_san": true
+    },
+    "xonix_https": "PASS",
+    "tcp_80": "PASS",
+    "tcp_443": "PASS",
+    "tcp_8443": "PASS",
+    "tcp_9443": "PASS"
+  }
+}

@@ -1,0 +1,5 @@
+FROM golang@sha256:d9b6a1beb9474adc2a1ce842573639b44b2a0dd49b6669f51d3821baf9ec37c9 AS go
+FROM debian@sha256:a72b4433de1cf7d6bae0c4cee74d0547f58601a643b3375f070c51600d63b6b2
+RUN apt-get update && apt-get install -y --no-install-recommends ca-certificates gcc make libc6-dev python3 python3-venv iproute2 openssl && rm -rf /var/lib/apt/lists/*
+COPY --from=go /usr/local/go /usr/local/go
+ENV PATH=/usr/local/go/bin:/usr/sbin:/usr/bin:/sbin:/bin GOTOOLCHAIN=local

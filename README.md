@@ -1,317 +1,56 @@
-# 3x-ui-pro Extended Installer
-
-Расширенный установщик панели **[3x-ui](https://github.com/MHSanaei/3x-ui)** на базе [mozaroc/3x-ui-pro](https://github.com/mozaroc/3x-ui-pro).
-
-Одна команда ставит панель, nginx, SSL, подписку Clash и сразу создаёт inbound’ы по основным протоколам — включая антиблок-варианты (REALITY + Vision, XHTTP + REALITY, Hysteria2 на UDP 443).
-
----
-
-## Возможности
-
-| Компонент | Описание |
-|-----------|----------|
-| **3x-ui** | VPN-панель с веб-интерфейсом |
-| **nginx** | Обратный прокси, SNI-роутинг на порт 443 |
-| **certbot** | Let's Encrypt SSL (автообновление) |
-| **Clash-подписка** | Выдача `clash.yaml` по User-Agent |
-| **Диагностика** | MTR + LibreSpeed в браузере |
-| **Fake-site** | Случайный HTML-сайт-прикрытие |
-| **Firewall (UFW)** | Автооткрытие нужных портов |
+# 3xui-pro-fork — Debian 13 preview
 
-### Протоколы (создаются при установке)
-
-| Протокол | Порт / путь | Примечание |
-|----------|-------------|------------|
-| **VLESS + REALITY + Vision** | 8443 → nginx **:443** | flow `xtls-rprx-vision`, клиент с UUID, `tgId: 0` |
-| **VLESS + WebSocket + TLS** | path → nginx **:443** | |
-| **VLESS + XHTTP + TLS** | path → nginx **:443** (Unix-сокет) | через nginx |
-| **VLESS + XHTTP + REALITY** | отдельный TCP | прямой REALITY, клиент с UUID |
-| **VLESS Encryption (PQ)** | отдельный TCP | ML-KEM-768 + XHTTP + REALITY + Vision |
-| **Trojan + gRPC + TLS** | path → nginx **:443** | |
-| **VMess + WebSocket + TLS** | path → nginx **:443** | |
-| **Shadowsocks 2022** | свой TCP+UDP | method `2022-blake3-aes-128-gcm` |
-| **Hysteria2** | **UDP 443** | тот же порт, что HTTPS (TCP) |
-| **TUIC v5** | отдельный UDP + TLS | |
-| **AmneziaWG** | отдельный UDP | схема 3x-ui `server` + obfuscation |
-| **AmneziaWG 3.1** | отдельный UDP | отдельная подсеть и параметры |
-| **WireGuard** | отдельный UDP | |
-| **MTProto** | отдельный TCP | для Telegram |
-| **Mixed (SOCKS5 + HTTP)** | отдельный TCP | **user/pass создаётся автоматически** |
-| **MASQUE** | TCP+UDP + TLS | CONNECT-IP HTTP/3+HTTP/2, user/pass |
+Воспроизводимый установщик `3x-ui`, `Xray`, `AmneziaWG 3.1`, `WireGuard`, `Hysteria2`, `Nginx`, `Let's Encrypt` и игры `XONIX Neon Frontier`. Целевая ОС — **Debian 13 amd64 с systemd**.
 
-### Антиблок
-
-- **REALITY + Vision** — основной канал против DPI  
-- **XHTTP + REALITY** — запасной «веб-подобный» транспорт  
-- **VLESS Encryption (ML-KEM-768)** — post-quantum + XHTTP + REALITY  
-- **Hysteria2 на UDP 443** — рядом с HTTPS, меньше «лишних» портов  
-- **AmneziaWG / 3.1** — WireGuard с обфускацией (panel-native)
+**PREVIEW-XONIX-08: PASS на чистой лабораторной Debian 13 VM** для всех шести управляемых панелью inbound (`P0`, `P1`, `P3`, `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`). **Production `de126` (`179.254.154.126`) и ветка `main` (`7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`) не изменялись**: production продолжает работать на `a3a6b991eb21dc2b4822c4fae13426d91e19db48` (три VLESS + отдельный AWG `29177`). См. [статус проекта](docs/PROJECT_STATUS.md) и [отчёт PREVIEW-XONIX-08](docs/stages/evidence/preview-xonix-08/test-results.md).
 
-### Названия inbound’ов
+## Возможности и шесть протоколов
 
-Формат: `код_страны | emoji название`, например:
+| Tag / компонент | Runtime и транспорт | Порт / сеть по умолчанию | Аутентификация, export и статус |
+|---|---|---|---|
+| `VLESS-REALITY-XHTTP-H2` (P0) | Native `3x-ui` → `xray-linux-amd64` `26.11.9`, REALITY + XHTTP H2 | TCP `8443` (`--p0-port`) | UUID, REALITY keys/shortId; `/sub`, `/json`, `/clash`; **PASS** |
+| `VLESS-TLS-XHTTP-H2` (P1) | Nginx TLS/H2 → loopback `127.0.0.1:19441` (`xray-linux-amd64`) | Public TCP `443` | UUID + TLS (`externalProxy` SAN); `/sub`, `/json`, `/clash`; **PASS** |
+| `VLESS-REALITY-VISION` (P3) | Native `3x-ui` → `xray-linux-amd64`, REALITY + Vision | TCP `9443` (`--p3-port`) | UUID + `xtls-rprx-vision`; `/sub`, `/json`, `/clash`; **PASS** |
+| `WIREGUARD` | Native `3x-ui` → `xray-linux-amd64` userspace (`noKernelTun: true`) | UDP `51820` (`--wg-port`), `10.89.8.0/24` (`--wg-subnet`) | Pure-Python X25519 (`clients.wg_*`), zero AWG; `.conf`, `wireguard://`, `/sub`, `/json`; **PASS** |
+| `AMNEZIAWG-3.1` | Embedded `amneziawgnet` в `x-ui` MainPID (`kernelMode: false`) → Xray SOCKS5 loopback | UDP `29177` (`--awg-port`), `10.88.32.0/24` (`--awg-subnet`) | `awg` keys + `HeaderProtectionKey` + obfuscation; `vpn://` → `.conf`/`setconf`; **PASS** |
+| `HYSTERIA2` | Native `3x-ui` → `xray-linux-amd64` v2, `network: hysteria`, TLS `h3` | UDP `24443` (`--hy2-port`), two-domain ACME cert | 32-byte `auth` secret; `hysteria2://`, `/sub`; **PASS** |
 
-`AL | 🔒 VLESS REALITY + Vision` · `AL | ⚡ Hysteria2 (UDP 443)` · `AL | 🔧 Mixed SOCKS5 + HTTP`
+WireGuard и AmneziaWG 3.1 реализованы и проверяются **строго независимо** (отдельные модули, порты, подсети, ключи, клиенты и E2E-тесты). Подробности в [PROTOCOLS](docs/PROTOCOLS.md).
 
-Код страны берётся по IP сервера (без emoji-флагов — они часто отображаются как «кубик»).
+Закреплённые версии: `3x-ui` **3.11.0**, `Xray-core` **26.11.9**, `amneziawg-go` **3.1.20260828**, `awg` tools **3.1.20260812**, Nginx Debian Security **1.26.3-3+deb13u11**. [Происхождение и лицензии](release/distribution/README.md).
 
----
+## Архитектура
 
-## Nginx: расположение и роль в связке
+`Nginx` публикует два домена: основной домен с XONIX (`/`), защищённым путём панели и `/xhttp/` для P1, а также отдельный домен подписок (`access_log off`, корень `404`). SQLite (`/var/lib/3xui-pro-fork/x-ui.db`) и API панели — источник истины для всех шести inbound, клиентов и подписок. Единственный дочерний процесс `xray-linux-amd64` обслуживает P0, P1, P3, `WIREGUARD`, `HYSTERIA2` и loopback SOCKS5-ретранслятор для `AMNEZIAWG-3.1`; процесс `x-ui` обслуживает UI/API, подписки и embedded `AMNEZIAWG-3.1`. Отдельная служба `3xui-pro-fork-awg.service` остаётся inactive/disabled в 6-inbound режиме и активна только при `--vless-only` или на неизменённом production. [Архитектура](docs/ARCHITECTURE.md), [решения](docs/DECISIONS.md).
 
-Скрипт ставит **nginx-full** как фронт на **:443**. TLS для «обычных» протоколов терминируется на nginx, REALITY идёт мимо TLS nginx (SNI → Xray).
+## Установка и режимы
 
-### Схема трафика
+Нужны Debian 13 amd64, root, systemd, `/dev/net/tun`, `CAP_NET_ADMIN`, два DNS A-имени, доступ к закреплённым источникам и непересекающиеся RFC1918 подсети. Fresh installer требует минимум 512 MiB свободного диска (используйте `TMPDIR=/var/tmp` при memory-backed `/tmp`).
 
-```
-Клиент
-  │
-  ▼
-:443 TCP  ── nginx stream (ssl_preread / SNI)
-  │
-  ├─ SNI = reality_domain  →  127.0.0.1:8443  (Xray VLESS REALITY)
-  │
-  └─ SNI = subdomain       →  127.0.0.1:7443  (nginx HTTP vhost + TLS)
-                                │
-                                ├─ /ws|vmess|trojan paths  → Xray (WS/gRPC)
-                                ├─ /xhttp_path             → Unix-сокет XHTTP
-                                ├─ /sub_path               → подписка 3x-ui
-                                └─ /                       → fake-site
-```
+- **Fresh 6-inbound по умолчанию**: `bootstrap-preview.sh` с `--panel-inbounds` и `--awg-subnet <UNUSED_RFC1918_/16../30>` (и опциональными `--wg-subnet`, `--wg-port`, `--awg-port`, `--hy2-port`) создаёт все 6 управляемых inbound.
+- **Opt-out legacy схема**: `--panel-inbounds --vless-only --awg-subnet <UNUSED_RFC1918_/30>` сохраняет схему 3 VLESS + отдельный `3xui-pro-fork-awg.service`.
+- **Opt-in апгрейд существующего 3-VLESS READY**: `--panel-inbounds --add-vpn-inbounds` (и `--handoff-standalone-awg`, если активен `3xui-pro-fork-awg.service`). На production запускается только по отдельному разрешению.
 
-UDP **443** (Hysteria2) nginx **не** трогает — слушает Xray напрямую.
+Используйте только проверенный immutable commit и SHA256 bootstrap: [установка](docs/INSTALLATION.md). Старый `x-ui-latest.sh` отключён.
 
-### Файлы на сервере
+## Управление, экспорт и подписки
 
-| Путь | Назначение |
-|------|------------|
-| `/etc/nginx/nginx.conf` | Основной конфиг; подключены `stream` и `ngx_stream_module` |
-| `/etc/nginx/stream-enabled/stream.conf` | SNI-роутинг :443 → 8443 (REALITY) / 7443 (сайт) |
-| `/etc/nginx/sites-available/<subdomain>` | TLS-vhost панели (listen **7443** ssl proxy_protocol) |
-| `/etc/nginx/sites-available/<reality_domain>` | Отдельный vhost для reality-домена |
-| `/etc/nginx/sites-available/80.conf` | HTTP :80 → ACME / redirect |
-| `/etc/nginx/sites-available/00-maps.conf` | map’ы (User-Agent → Clash и т.п.) |
-| `/etc/nginx/snippets/includes.conf` | Общие `location`: подписка, XHTTP, WS-прокси |
-| `/etc/nginx/sites-enabled/` | Симлинки на активные vhost’ы |
+Клиенты создаются и управляются через защищённый UI (`Inbounds` / `Clients`) или authenticated API панели. Для P3 задаётся `xtls-rprx-vision`. WireGuard экспортируется в стандартный `.conf`, `wireguard://`, `/sub/<subId>` и `/json/<subId>` без AWG-параметров; AmneziaWG 3.1 — в `vpn://<base64url>` (`clients/links` и `/sub/<subId>`) с декодированием в AWG 3.1 `.conf`; Hysteria2 — в `hysteria2://` (TLS/h3, SNI = main domain) через `clients/links` и `/sub/<subId>`. VLESS поддерживает `/sub`, `/json` и `/clash`. Для `AMNEZIAWG-3.1` обновление клиентов запускает ~30-секундный цикл пересборки Xray SOCKS5-ретранслятора. [Матрица протоколов](docs/PROTOCOLS.md).
 
-Сертификаты: `/etc/letsencrypt/live/<domain>/` (копии в `/root/cert/` для Hysteria2/TUIC).
+## Безопасность, повторы и восстановление
 
-### Порты
+Повтор установщика с идентичными параметрами и `--panel-inbounds` проверяет ownership, целостность SQLite и криптографическую идентичность без перезаписи клиентов (`preserved_exact_identity: true`). Полный бинарный updater/rollback не реализован; не запускайте `x-ui update`.
 
-| Порт | Кто слушает | Зачем |
-|------|-------------|--------|
-| **443/TCP** | nginx stream | Единая точка входа, SNI-split |
-| **443/UDP** | Xray (Hysteria2) | QUIC рядом с HTTPS |
-| **7443** | nginx vhost | TLS-сайт + прокси к Xray |
-| **8443** | Xray REALITY | После SNI-роутинга с :443 |
+Никогда не коммитьте SQLite, backups, API tokens, private keys, subscription tokens и приватный путь панели. Оба журнала (`preview-panel-inbounds.json` и `preview-vpn-inbounds.json`) после `READY` запрещают автоматический rollback; при `RECOVERY_REQUIRED` требуется ручная диагностика. [Эксплуатация](docs/OPERATIONS.md), [восстановление](docs/RECOVERY.md).
 
-### Cloudflare
+## Документация и разработка
 
-Только для location’ов за TLS nginx (WS, XHTTP+TLS, gRPC, подписка).  
-REALITY, Hysteria2, AmneziaWG, TUIC — **напрямую на IP**, не через CF Proxied.
+- [Статус проекта](docs/PROJECT_STATUS.md) и [отчёт PREVIEW-XONIX-08](docs/stages/evidence/preview-xonix-08/test-results.md).
+- [Архитектура](docs/ARCHITECTURE.md), [архитектурные решения](docs/DECISIONS.md), [протоколы](docs/PROTOCOLS.md), [установка](docs/INSTALLATION.md).
+- [Тестирование](docs/TESTING.md): historical baseline **318/318 PASS** (07A) отделён от новой 6-inbound приёмки PREVIEW-08.
+- [GEMINI.md](GEMINI.md), [AGENTS.md](AGENTS.md), [передача Antigravity](docs/ANTIGRAVITY_HANDOFF.md).
+- [Историческая справка установщика](docs/PREVIEW_XONIX_INSTALL.md): архивные режимы до 6-inbound интеграции.
 
----
+## Авторство и лицензии
 
-## Установка
-
-**Требования:** Debian 12/13 или Ubuntu 24.04/26.04, root, **два домена** с A-записью на IP сервера.
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/main/x-ui-latest.sh) \
-  -install y \
-  -subdomain panel.example.com \
-  -reality_domain reality.example.com
-```
-
-| Флаг | Описание |
-|------|----------|
-| `-install y` | Установка без лишних вопросов |
-| `-subdomain` | Основной домен панели / TLS / подписки |
-| `-reality_domain` | Домен для REALITY (SNI) |
-| `-ONLY_CF_IP_ALLOW y` | Доступ только с IP Cloudflare |
-| `-version X.Y.Z` | Закрепить версию 3x-ui |
-| `-uninstall y` | Удаление |
-
-После установки в выводе: URL панели, логин/пароль, UUID Vision и XHTTP+REALITY, user/pass Mixed, порты.
-
-### Опционально: AdGuard Home (DoH)
-
-Совместим с этой сборкой (тот же nginx layout). Конфликта с inbound’ами нет:
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/mozaroc/3x-ui-pro/main/x-ui-adguard.sh)
-```
-
-После полной переустановки панели — запустите скрипт AdGuard ещё раз (восстановит include в nginx).
-
----
-
-## Обновление панели
-
-Обычный update **не сбрасывает** inbound’ы:
-
-```bash
-x-ui update
-```
-
-Бэкап БД:
-
-```bash
-cp /etc/x-ui/x-ui.db /root/x-ui.db.bak-$(date +%F)
-```
-
----
-
-
-## Правка БД на уже установленном сервере
-
-Если клиенты не сохраняются (`tgId of type int64`) или TUIC / AmneziaWG с ошибками — запустите:
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/main/x-ui-db-fix.sh)
-```
-
-Скрипт:
-
-1. Делает бэкап `/etc/x-ui/x-ui.db` → `/root/x-ui.db.bak-fix-...`
-2. Исправляет `tgId` / числовые поля клиентов (строка → число)
-3. Пересобирает **TUIC** в формат `server` + `clients` + сертификаты
-4. Пересобирает **AmneziaWG** в формат `server` + obfuscation (если старая схема)
-5. Перезапускает `x-ui`
-
-Без перезапуска: `bash x-ui-db-fix.sh -restart n`
-
-### Добавить VLESS Encryption (PQ) на уже установленный сервер
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/main/x-ui-add-vless-pq.sh)
-```
-
-Берёт ключи REALITY из существующего inbound, генерирует ML-KEM-768 через `xray vlessenc`, открывает порт в UFW и перезапускает панель.
-
-
-
-
-
-
-
-### Переименовать remark на уже установленных узлах
-
-Формат `CC-subdomain |` (например `DE-ee3 |`):
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/main/x-ui-rename-remarks.sh)
-```
-
-Параметры:
-
-```bash
-bash x-ui-rename-remarks.sh -domain ee3.alexsun55.ru
-bash x-ui-rename-remarks.sh -label ee3 -cc DE
-bash x-ui-rename-remarks.sh -prefix 'DE-ee3 |'
-```
-
-Запускать **на каждом узле**. На мастере после этого обновите/переимпортируйте hosts при необходимости.
-
-
-## RoscomVPN routing (Happ + INCY)
-
-При установке подключается [hydraponique/roscomvpn-routing](https://github.com/hydraponique/roscomvpn-routing):
-
-| Клиент | Настройка 3x-ui |
-|--------|-----------------|
-| **Happ** | `subEnableRouting` + `subRoutingRules` (DEFAULT deeplink) |
-| **INCY** | `subIncyEnableRouting` + `subIncyRoutingRules` |
-| **JSON sub** | `subJsonRoutingRules` → URL `HAPP/DEFAULT.JSON` |
-
-Автообновление: **ежедневно в 04:00** (`/usr/local/lib/3x-ui-pro/update-roscomvpn-routing.sh`).
-
-На уже установленном сервере:
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/main/x-ui-update-routing.sh)
-```
-
-## Устранение неполадок
-
-### Ошибка при сохранении клиента: `tgId of type int64`
-
-В 3x-ui поле `tgId` должно быть **числом** (`0`), не строкой `""`.  
-В актуальном скрипте клиенты создаются с `"tgId": 0`.
-
-Если установка была со старой версии скрипта:
-
-```bash
-python3 << 'PY'
-import sqlite3, json
-db = sqlite3.connect("/etc/x-ui/x-ui.db")
-c = db.cursor()
-for iid, raw in c.execute("SELECT id, settings FROM inbounds"):
-    try:
-        s = json.loads(raw or "{}")
-    except Exception:
-        continue
-    changed = False
-    for cl in s.get("clients") or []:
-        if not isinstance(cl, dict):
-            continue
-        for key in ("tgId", "limitIp", "totalGB", "expiryTime", "reset"):
-            v = cl.get(key)
-            if isinstance(v, str):
-                s2 = v.strip().replace(" ", "")
-                cl[key] = int(s2) if s2.lstrip("-").isdigit() else 0
-                changed = True
-    if changed:
-        c.execute("UPDATE inbounds SET settings=? WHERE id=?", (json.dumps(s, ensure_ascii=False), iid))
-        print("fixed", iid)
-db.commit()
-db.close()
-print("done")
-PY
-x-ui restart
-```
-
----
-
-## Удаление
-
-```bash
-bash <(curl -fsSL https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/main/x-ui-latest.sh) -uninstall y
-```
-
----
-
-## Важно
-
-- REALITY, Hysteria2, TUIC, AmneziaWG, WireGuard **не** работают через Cloudflare CDN.  
-- Через CDN: WebSocket, XHTTP+TLS, Trojan gRPC.  
-- Для протоколов без авто-клиента добавьте клиентов в панели.  
-- Vision, XHTTP+REALITY и Mixed уже имеют готового клиента.
-
----
-
-## Changelog (кратко)
-
-- REALITY + Vision, XHTTP + REALITY, Hysteria2 на UDP 443  
-- AmneziaWG / 3.1 — корректная схема `server` + obfuscation  
-- Mixed — авто user/pass  
-- Remarks: CC-subdomain (DE-ee3) + emoji протокола  
-- Клиенты: `"tgId": 0` (int64), без пустых строк
-- VLESS Encryption PQ (ML-KEM-768 + XHTTP + REALITY)
-- TUIC v5: схема `server`+`clients` (не Xray stream), сертификаты, клиент с uuid/pass  
-- Совместимость с `x-ui-adguard.sh` из mozaroc/3x-ui-pro  
-
----
-
-## Благодарности
-
-- **[MHSanaei](https://github.com/MHSanaei)** — автор и основной разработчик панели [3x-ui](https://github.com/MHSanaei/3x-ui)
-- **[mozaroc](https://github.com/mozaroc)** — автор установщика [3x-ui-pro](https://github.com/mozaroc/3x-ui-pro), на базе которого сделан этот форк
-
-Спасибо за открытый код и поддержку сообщества.
-
-## Ссылки
-
-- [3x-ui](https://github.com/MHSanaei/3x-ui)  
-- [3x-ui-pro (оригинал)](https://github.com/mozaroc/3x-ui-pro)  
-- Скрипт: [`x-ui-latest.sh`](https://raw.githubusercontent.com/test-alexsun/3xui-pro-fork/main/x-ui-latest.sh)
+Форк основан на установщике [mozaroc/3x-ui-pro](https://github.com/mozaroc/3x-ui-pro). Панель — [MHSanaei/3x-ui](https://github.com/MHSanaei/3x-ui), ядро — [XTLS/Xray-core](https://github.com/XTLS/Xray-core), AWG — [Amnezia VPN](https://github.com/amnezia-vpn). Сохраняйте атрибуцию и поставляемые лицензии в [release/distribution](release/distribution/README.md); лицензия одного компонента не заменяет лицензии остальных.

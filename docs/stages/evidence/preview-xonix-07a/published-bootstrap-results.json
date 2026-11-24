@@ -1,0 +1,8 @@
+{
+  "status": "PASS",
+  "revision": "a3a6b991eb21dc2b4822c4fae13426d91e19db48",
+  "bootstrap_sha256": "dd0ef3205a9d9864c7778de2f0b5b41c259866c8c31055855b4bee9cd5295fb3",
+  "github_exact_revision_bootstrap_repeat": true,
+  "native_pid_preserved": true,
+  "clients_and_subscription_ids_preserved": true
+}

@@ -1,0 +1,21 @@
+[Unit]
+Description=3xui-pro-fork AWG 3.1 managed endpoint
+After=network.target
+ConditionPathExists=/dev/net/tun
+
+[Service]
+Type=notify
+NotifyAccess=main
+ExecStartPre=/usr/bin/test -c /dev/net/tun
+ExecStart=/usr/bin/python3 /opt/3xui-pro-fork/awg/awg_service.py
+Restart=on-failure
+RestartSec=5
+TimeoutStartSec=30
+TimeoutStopSec=20
+KillMode=control-group
+UMask=0077
+NoNewPrivileges=true
+CapabilityBoundingSet=CAP_NET_ADMIN CAP_NET_RAW CAP_NET_BIND_SERVICE
+
+[Install]
+WantedBy=multi-user.target
