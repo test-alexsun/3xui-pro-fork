@@ -66,10 +66,10 @@ TMPDIR=/var/tmp sh ./bootstrap-preview.sh "$REV" \
 
 ## Режим 3: Opt-in добавление VPN на существующий 3-VLESS `READY` узел
 
-Не запускается автоматически и на production требует отдельного операторского разрешения:
+Не запускается автоматически и на production требует согласованного backup, проверки свободных UDP-портов и окна обслуживания (успешно применено на `de126` 2026-11-24 с ревизии `9e44b525685458f00c34effe6795814b1da24da9` — [PRODUCTION_ROLLOUT_6_INBOUNDS](PRODUCTION_ROLLOUT_6_INBOUNDS.md)):
 
 ```sh
-TMPDIR=/var/tmp sh ./install-preview.sh \
+TMPDIR=/var/tmp sh ./bootstrap-preview.sh "$REV" \
   --public-bind '<SERVER_IPV4>' \
   --domain 'vpn.example.com' \
   --subscription-domain 'sub.example.com' \
@@ -84,10 +84,10 @@ TMPDIR=/var/tmp sh ./install-preview.sh \
   --handoff-standalone-awg
 ```
 
-Без `--add-vpn-inbounds` повторный запуск против существующего 3-VLESS `READY` оставляет узел нетронутым; без `--handoff-standalone-awg` активная `3xui-pro-fork-awg.service` никогда не останавливается. Оба флага `--add-vpn-inbounds` и `--handoff-standalone-awg` требуют `--panel-inbounds`, а `--vless-only` несовместим с `--add-vpn-inbounds`.
+Без `--add-vpn-inbounds` повторный запуск против существующего 3-VLESS `READY` оставляет узел нетронутым; без `--handoff-standalone-awg` активная `3xui-pro-fork-awg.service` никогда не останавливается. Оба флага `--add-vpn-inbounds` и `--handoff-standalone-awg` требуют `--panel-inbounds`, а `--vless-only` несовместим с `--add-vpn-inbounds`. После завершения `--add-vpn-inbounds` повторный запуск выполняется уже **без** `--add-vpn-inbounds` (только `--panel-inbounds` с теми же портами/подсетями).
 
 ## Безопасный повтор
 
-Повторный вызов с теми же `--domain`, `--subscription-domain`, `--public-bind`, портами, подсетями и `--panel-inbounds` завершается кодом `0`, проверяет `upgrade_candidate.inspect_installed(..., require_standalone_awg=False)`, `native.verify_ready()` и `vpn.verify_ready()`, не меняя inbound IDs, UUIDs, ключи, `subId` и операторских клиентов. При расхождении параметров или состоянии `RECOVERY_REQUIRED` повтор аварийно останавливается без изменений.
+Повторный вызов с теми же `--domain`, `--subscription-domain`, `--public-bind`, портами, подсетями и `--panel-inbounds` завершается кодом `0` (подтверждено и в VM, и на `de126`), проверяет `upgrade_candidate.inspect_installed(..., require_standalone_awg=False)`, `native.verify_ready()` и `vpn.verify_ready()`, не меняя inbound IDs, UUIDs, ключи, `subId` и операторских клиентов. При расхождении параметров или состоянии `RECOVERY_REQUIRED` повтор аварийно останавливается без изменений.
 
 Исторические flags sandbox/Pebble: [PREVIEW_XONIX_INSTALL](PREVIEW_XONIX_INSTALL.md).

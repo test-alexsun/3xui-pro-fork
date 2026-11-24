@@ -1,0 +1,119 @@
+{
+  "status": "PASS",
+  "ports_distinct": {
+    "VLESS-REALITY-XHTTP-H2": 8443,
+    "VLESS-TLS-XHTTP-H2": 19441,
+    "VLESS-REALITY-VISION": 9443,
+    "WIREGUARD": 51820,
+    "AMNEZIAWG-3.1": 29177,
+    "HYSTERIA2": 24443
+  },
+  "subnets_disjoint": {
+    "WIREGUARD": "10.89.8.0/24",
+    "AMNEZIAWG-3.1": "10.88.32.0/24"
+  },
+  "distinct_wg_awg_server_keys": true,
+  "simultaneous_all_6": {
+    "AMNEZIAWG-3.1": {
+      "handshake_ts": 1795510865,
+      "https_ok": true,
+      "udp_ok": true
+    },
+    "WIREGUARD": {
+      "handshake_ts": 1795510865,
+      "https_ok": true,
+      "udp_ok": true
+    },
+    "VLESS-REALITY-XHTTP-H2": {
+      "https_ok": true,
+      "udp_ok": null
+    },
+    "VLESS-TLS-XHTTP-H2": {
+      "https_ok": true,
+      "udp_ok": null
+    },
+    "VLESS-REALITY-VISION": {
+      "https_ok": true,
+      "udp_ok": null
+    },
+    "HYSTERIA2": {
+      "https_ok": true,
+      "udp_ok": true
+    }
+  },
+  "planned_restart": {
+    "new_panel_pid": 101179,
+    "new_xray_pid": 101188,
+    "persisted_enabled": {
+      "prod-smoke-wg-f0b87064": true,
+      "prod-smoke-awg31-69201dc1": true,
+      "prod-smoke-hy2-0d5d66fb": true
+    },
+    "post_restart_traffic": {
+      "WIREGUARD": {
+        "handshake_ts": 1795510874,
+        "https_ok": true,
+        "udp_ok": true
+      },
+      "AMNEZIAWG-3.1": {
+        "handshake_ts": 1795510877,
+        "https_ok": true,
+        "udp_ok": true
+      },
+      "VLESS-REALITY-XHTTP-H2": {
+        "https_ok": true,
+        "udp_ok": null
+      },
+      "VLESS-TLS-XHTTP-H2": {
+        "https_ok": true,
+        "udp_ok": null
+      },
+      "VLESS-REALITY-VISION": {
+        "https_ok": true,
+        "udp_ok": null
+      },
+      "HYSTERIA2": {
+        "https_ok": true,
+        "udp_ok": true
+      }
+    }
+  },
+  "cleanup_and_revocation": {
+    "deleted_emails": [
+      "prod-smoke-wg-f0b87064",
+      "prod-smoke-awg31-69201dc1",
+      "prod-smoke-hy2-0d5d66fb"
+    ],
+    "remaining_clients_exact_6": [
+      "preview-P0",
+      "preview-P1",
+      "preview-P3",
+      "starter-amneziawg31",
+      "starter-hysteria2",
+      "starter-wireguard"
+    ],
+    "inbounds_client_emails": {
+      "VLESS-REALITY-XHTTP-H2": [
+        "preview-P0"
+      ],
+      "VLESS-TLS-XHTTP-H2": [
+        "preview-P1"
+      ],
+      "VLESS-REALITY-VISION": [
+        "preview-P3"
+      ],
+      "WIREGUARD": [
+        "starter-wireguard"
+      ],
+      "AMNEZIAWG-3.1": [
+        "starter-amneziawg31"
+      ],
+      "HYSTERIA2": [
+        "starter-hysteria2"
+      ]
+    },
+    "wg_revoked_denied": true,
+    "awg31_revoked_denied": true,
+    "hy2_revoked_denied": true
+  }
+}

@@ -29,8 +29,8 @@
 
 ## ADR-05: Серверный MTU `1420` по умолчанию и отмена legacy client compatibility
 
-- **Решение**: server default MTU остаётся `1420` для `WIREGUARD` и `AMNEZIAWG-3.1`; измеренный клиентский MTU `1368` относится только к единичному маршруту 07A. Проверка старых standalone `/30` WG/AWG клиентских профилей и профилей 1.x/2.x отменена при сохранении production клиентов и ключей без изменений.
+- **Решение**: server default MTU остаётся `1420` для `WIREGUARD` и `AMNEZIAWG-3.1`; измеренные клиентские MTU `1368` (путь 07A) и `1280` (1568 B PQ `TLSv1.3 ClientHello` через локальный Docker/WSL2/ISP WAN-путь к `de126`) относятся только к клиентским профилям на конкретных WAN-путях, не меняя server MTU. Проверка старых standalone `/30` WG/AWG клиентских профилей и профилей 1.x/2.x отменена; после production handoff `de126` 2026-11-24 старые `/30` профили теряют доступ, при этом прежний архив `/var/lib/3xui-pro-fork/awg/` и pre-rollout backup полностью сохранены.
 
-## ADR-06: Двухжурнальный fail-closed lifecycle и неприкосновенность production
+## ADR-06: Двухжурнальный fail-closed lifecycle и управление production `de126`
 
-- **Решение**: переход P0/P1/P3 (`preview-panel-inbounds.json`) и добавление WG/AWG 3.1/HY2 (`preview-vpn-inbounds.json`) ведутся в отдельных fail-closed журналах. После `READY` автоматический rollback запрещён; ошибки переводят журнал в `RECOVERY_REQUIRED`. Остановка существующей production-службы `3xui-pro-fork-awg.service` запрещена без явных `--add-vpn-inbounds --handoff-standalone-awg` и отдельного операторского разрешения.
+- **Решение**: переход P0/P1/P3 (`preview-panel-inbounds.json`) и добавление WG/AWG 3.1/HY2 (`preview-vpn-inbounds.json`) ведутся в отдельных fail-closed журналах. После `READY` автоматический rollback запрещён; ошибки переводят журнал в `RECOVERY_REQUIRED`. Остановка `3xui-pro-fork-awg.service` не выполняется автоматически без явных `--add-vpn-inbounds --handoff-standalone-awg` и разрешения владельца (реализовано и подтверждено на `de126` 2026-11-24 с созданием согласованного online SQLite backup). Для будущих задач production остаётся read-only по умолчанию.

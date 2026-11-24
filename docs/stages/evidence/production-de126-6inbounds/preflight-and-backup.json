@@ -1,0 +1,95 @@
+{
+  "timestamp_utc": "20261124T084510Z",
+  "backup_dir": "/var/backups/3xui-pro-fork/pre-6inbounds-20261124T084510Z",
+  "backup_file_count": 23,
+  "manifest_sha256_verified": true,
+  "manifest_sha256_digest": "719b55f87ba6acdc67c3ad8d5a4ce679833bc7484f651e1364df64e8a4a55f64",
+  "sqlite_integrity_check": "ok",
+  "inbounds_count": 3,
+  "vless_rows_baseline": [
+    {
+      "id": 1,
+      "tag": "VLESS-REALITY-XHTTP-H2",
+      "protocol": "vless",
+      "port": 8443,
+      "listen": "179.254.154.126",
+      "enable": 1,
+      "row_sha256": "33b55750794fee093f0c7b8c68c1ff599bb8847cc56190e4a75e87ffd11d8200",
+      "client_emails": [
+        "preview-P0"
+      ]
+    },
+    {
+      "id": 2,
+      "tag": "VLESS-TLS-XHTTP-H2",
+      "protocol": "vless",
+      "port": 19441,
+      "listen": "127.0.0.1",
+      "enable": 1,
+      "row_sha256": "9e474106602119e9d37e929fa5307c29c6e8787a4ee901915729ec275d5e6ba0",
+      "client_emails": [
+        "preview-P1"
+      ]
+    },
+    {
+      "id": 3,
+      "tag": "VLESS-REALITY-VISION",
+      "protocol": "vless",
+      "port": 9443,
+      "listen": "179.254.154.126",
+      "enable": 1,
+      "row_sha256": "0bcba5426913d65d16ae43d76694f50c9255b2dffc89f0b4f437eea5d3e05a57",
+      "client_emails": [
+        "preview-P3"
+      ]
+    }
+  ],
+  "existing_client_emails": [
+    "preview-P0",
+    "preview-P1",
+    "preview-P3"
+  ],
+  "awg_archived_files": [
+    "client.conf",
+    "metadata.json",
+    "server.setconf"
+  ],
+  "panel_inbounds_journal_sha256": "7ff0149a3ee5b74ec96b45668668bef0ecd8b1be76fef7d7b5ccba7765252ec0",
+  "mem_total": "990564 kB",
+  "mem_available": "610896 kB",
+  "swap_total": "0 kB",
+  "loadavg": "0.00 0.00 0.00 1/116 99503",
+  "root_free_gib": 7.78,
+  "root_free_inodes": 609773,
+  "oom_count": 0,
+  "units": {
+    "3xui-pro-fork.service": {
+      "MainPID": "87577",
+      "MemoryCurrent": "108298240",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "3xui-pro-fork-awg.service": {
+      "MainPID": "85897",
+      "MemoryCurrent": "25333760",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "nginx.service": {
+      "MainPID": "85182",
+      "MemoryCurrent": "5189632",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "3xui-preview-xray.service": {
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "ActiveState": "inactive",
+      "UnitFileState": "disabled"
+    },
+    "3xui-preview-renew.timer": {
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    }
+  }
+}

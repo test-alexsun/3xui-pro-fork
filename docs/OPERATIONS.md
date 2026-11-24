@@ -16,12 +16,12 @@ df -h / /var/tmp
 journalctl -k --since '1 hour ago' --no-pager
 ```
 
-Ожидаемое владение сокетами в **6-inbound preview режиме** (`READY`):
-- `3xui-pro-fork.service` (`x-ui` MainPID): loopback панели `127.0.0.1:2053`, подписок `127.0.0.1:2096` и UDP `--awg-port` (`29177` для `AMNEZIAWG-3.1`); `3xui-pro-fork-awg.service` и `3xui-preview-xray.service` должны быть `inactive`/`disabled`.
+Ожидаемое владение сокетами в **6-inbound preview/production режиме** (`READY`, действует на `de126` с 2026-11-24):
+- `3xui-pro-fork.service` (`x-ui` MainPID): loopback панели `127.0.0.1:2053`, подписок `127.0.0.1:2096` и UDP `--awg-port` (`29177` для `AMNEZIAWG-3.1`); `3xui-pro-fork-awg.service` и `3xui-preview-xray.service` должны быть `inactive`/`disabled`, а интерфейс `xproawg0` — отсутствовать.
 - Дочерний `xray-linux-amd64`: TCP `--p0-port` (`8443`), loopback P1 (`127.0.0.1:19441`), TCP `--p3-port` (`9443`), loopback Xray gRPC API (`62789`), UDP `--wg-port` (`51820` для `WIREGUARD`), UDP `--hy2-port` (`24443` для `HYSTERIA2`) и loopback SOCKS5 relay `127.0.0.1:<port>` для `AMNEZIAWG-3.1`.
 - `nginx`: TCP `80` (308 redirect + HTTP-01 challenge), `443` (XONIX decoy, private panel path, `/xhttp/`, subscription vhost).
 
-На **неизменённом production `de126`** `3xui-pro-fork-awg.service` активен (`amneziawg-go` на UDP `29177`, интерфейс `xproawg0`), а порты `51820` и `24443` не слушаются.
+Только в opt-out режиме `--vless-only` активен `3xui-pro-fork-awg.service` (`amneziawg-go` на UDP `29177`, интерфейс `xproawg0`), а порты `51820` и `24443` не слушаются. На `de126` прежний архив `/var/lib/3xui-pro-fork/awg/` и pre-rollout backup `/var/backups/3xui-pro-fork/pre-6inbounds-20261124T084510Z` сохранены без удаления.
 
 ## Управление клиентами и нюансы протоколов
 

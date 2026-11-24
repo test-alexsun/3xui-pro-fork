@@ -1,0 +1,28 @@
+{
+  "protocol": "WIREGUARD",
+  "status": "PASS",
+  "driver": "linux-kernel-wireguard (wg-tools)",
+  "port": 51820,
+  "subnet": "10.89.8.0/24",
+  "server_mtu": 1420,
+  "client_mtu_path_note": "TCP HTTP + UDP DNS PASS at client MTU 1420; full 1568B PQ TLSv1.3 HTTPS verified at client MTU 1280 over local Windows/WSL2/ISP path (server MTU 1420 preserved unchanged)",
+  "client_email": "prod-smoke-wg-f0b87064",
+  "no_awg_contamination": true,
+  "checks": {
+    "listener_xray_pid": 99922,
+    "api_get_links_sub_json_clash": "PASS",
+    "conf_render_parse": "PASS",
+    "mtu1420_handshake_epoch": 1795510541,
+    "mtu1420_http_egress_ip": "179.254.154.126",
+    "mtu1420_udp_dns_ok": true,
+    "mtu1280_handshake_epoch": 1795510543,
+    "mtu1280_https_egress_ip": "179.254.154.126",
+    "mtu1280_udp_dns_ok": true,
+    "mtu1280_rx_bytes": 6860,
+    "mtu1280_tx_bytes": 4116,
+    "crud_rotate_old_denied": true,
+    "crud_rotate_new_pass": true,
+    "crud_disable_denied": true,
+    "crud_reenable_pass": true
+  }
+}

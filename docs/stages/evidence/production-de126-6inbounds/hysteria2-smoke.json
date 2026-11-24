@@ -1,0 +1,24 @@
+{
+  "protocol": "HYSTERIA2",
+  "status": "PASS",
+  "runtime_owner": "xray-linux-amd64 26.11.9",
+  "port": 24443,
+  "tls_alpn": [
+    "h3"
+  ],
+  "tls_sni": "de126.alexsun55.ru",
+  "tls_verification": "strict system CA (no allowInsecure)",
+  "client_email": "prod-smoke-hy2-0d5d66fb",
+  "checks": {
+    "listener_xray_pid": 100979,
+    "api_get_links_sub_json_clash": "PASS",
+    "initial_tcp_egress_ip": "179.254.154.126",
+    "initial_decoy_200": true,
+    "initial_udp_dns_ok": true,
+    "negative_wrong_auth_denied": true,
+    "crud_rotate_old_denied": true,
+    "crud_rotate_new_pass": true,
+    "crud_disable_denied": true,
+    "crud_reenable_pass": true
+  }
+}

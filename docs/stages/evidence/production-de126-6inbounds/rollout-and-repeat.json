@@ -1,0 +1,231 @@
+{
+  "installed_revision": "9e44b525685458f00c34effe6795814b1da24da9",
+  "rollout_rc": 0,
+  "repeat_rc": 0,
+  "panel_inbounds_journal_sha256_after": "7ff0149a3ee5b74ec96b45668668bef0ecd8b1be76fef7d7b5ccba7765252ec0",
+  "panel_inbounds_journal_unchanged": true,
+  "vpn_inbounds_journal": {
+    "version": 2,
+    "phase": "READY",
+    "profiles": {
+      "WIREGUARD": 4,
+      "AMNEZIAWG-3.1": 5,
+      "HYSTERIA2": 6
+    },
+    "ports": {
+      "WIREGUARD": 51820,
+      "AMNEZIAWG-3.1": 29177,
+      "HYSTERIA2": 24443
+    },
+    "subnets": {
+      "WIREGUARD": "10.89.8.0/24",
+      "AMNEZIAWG-3.1": "10.88.32.0/24"
+    },
+    "backup": "/var/lib/3xui-pro-fork/preview08-backup-482dd1cdafd75fdd",
+    "backup_sqlite_ok": true,
+    "history_phases": [
+      "PREPARING",
+      "STAGING_WIREGUARD",
+      "STAGED_WIREGUARD",
+      "STAGING_AMNEZIAWG-3.1",
+      "STAGED_AMNEZIAWG-3.1",
+      "STAGING_HYSTERIA2",
+      "STAGED_HYSTERIA2",
+      "STOPPING_STANDALONE_AWG",
+      "ACTIVATING",
+      "READY"
+    ]
+  },
+  "sqlite_integrity_check": "ok",
+  "total_inbounds_count": 6,
+  "vless_exact_match": [
+    {
+      "id": 1,
+      "tag": "VLESS-REALITY-XHTTP-H2",
+      "preserved_sha256": true
+    },
+    {
+      "id": 2,
+      "tag": "VLESS-TLS-XHTTP-H2",
+      "preserved_sha256": true
+    },
+    {
+      "id": 3,
+      "tag": "VLESS-REALITY-VISION",
+      "preserved_sha256": true
+    }
+  ],
+  "vpn_inbounds_summary": {
+    "WIREGUARD": {
+      "id": 4,
+      "port": 51820,
+      "enable": true,
+      "protocol": "wireguard",
+      "noKernelTun": true,
+      "mtu": 1420,
+      "subnet": "10.89.8.0/24",
+      "has_awg_keys": false,
+      "pub_fingerprint": "8af1858d2f312707",
+      "client_emails": [
+        "starter-wireguard"
+      ]
+    },
+    "AMNEZIAWG-3.1": {
+      "id": 5,
+      "port": 29177,
+      "enable": true,
+      "protocol": "amneziawg",
+      "kernelMode": false,
+      "mtu": 1420,
+      "subnet": "10.88.32.0/24",
+      "has_hpk": true,
+      "obfs_s": {
+        "jc": 4,
+        "jmin": 40,
+        "jmax": 70,
+        "s1": 12,
+        "s2": 12,
+        "s3": 12,
+        "s4": 12,
+        "h1": "1",
+        "h2": "2",
+        "h3": "3",
+        "h4": "4"
+      },
+      "pub_fingerprint": "465e10b2eda9cf0e",
+      "client_emails": [
+        "starter-amneziawg31"
+      ]
+    },
+    "HYSTERIA2": {
+      "id": 6,
+      "port": 24443,
+      "enable": true,
+      "protocol": "hysteria",
+      "version": 2,
+      "network": "hysteria",
+      "security": "tls",
+      "alpn": [
+        "h3"
+      ],
+      "sni": "de126.alexsun55.ru",
+      "cert": "/var/lib/3xui-preview-acme/config/live/3xui-preview/fullchain.pem",
+      "client_emails": [
+        "starter-hysteria2"
+      ]
+    }
+  },
+  "distinct_wg_awg_pubkeys": true,
+  "xproawg0_present": false,
+  "standalone_awg_archive_preserved": true,
+  "panel_main_pid": 87577,
+  "xray_child_pid": 99922,
+  "listeners": {
+    "tcp_8443_P0": {
+      "pids": [
+        99922
+      ],
+      "addrs": [
+        "179.254.154.126:8443"
+      ]
+    },
+    "tcp_19441_P1": {
+      "pids": [
+        99922
+      ],
+      "addrs": [
+        "127.0.0.1:19441"
+      ]
+    },
+    "tcp_9443_P3": {
+      "pids": [
+        99922
+      ],
+      "addrs": [
+        "179.254.154.126:9443"
+      ]
+    },
+    "tcp_443_nginx": {
+      "pids": [
+        85182,
+        100005
+      ],
+      "addrs": [
+        "179.254.154.126:443"
+      ]
+    },
+    "tcp_2053_panel": {
+      "pids": [
+        87577
+      ],
+      "addrs": [
+        "127.0.0.1:2053"
+      ]
+    },
+    "tcp_2096_sub": {
+      "pids": [
+        87577
+      ],
+      "addrs": [
+        "127.0.0.1:2096"
+      ]
+    },
+    "udp_51820_wg": {
+      "pids": [
+        99922
+      ],
+      "addrs": [
+        "179.254.154.126:51820"
+      ]
+    },
+    "udp_29177_awg31": {
+      "pids": [
+        87577
+      ],
+      "addrs": [
+        "179.254.154.126:29177"
+      ]
+    },
+    "udp_24443_hy2": {
+      "pids": [
+        99922
+      ],
+      "addrs": [
+        "179.254.154.126:24443"
+      ]
+    }
+  },
+  "units": {
+    "3xui-pro-fork.service": {
+      "MainPID": "87577",
+      "MemoryCurrent": "104300544",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "3xui-pro-fork-awg.service": {
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "ActiveState": "inactive",
+      "UnitFileState": "disabled"
+    },
+    "nginx.service": {
+      "MainPID": "85182",
+      "MemoryCurrent": "5148672",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "3xui-preview-xray.service": {
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "ActiveState": "inactive",
+      "UnitFileState": "disabled"
+    },
+    "3xui-preview-renew.timer": {
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    }
+  },
+  "mem_available": "614168 kB",
+  "loadavg": "0.14 0.06 0.02 1/109 100225",
+  "oom_count": 0
+}

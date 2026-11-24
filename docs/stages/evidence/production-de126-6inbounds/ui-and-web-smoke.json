@@ -1,0 +1,106 @@
+{
+  "status": "PASS",
+  "scope": "external Playwright Chromium -> live production de126 (trusted Let's Encrypt CA, NO CDP TLS override)",
+  "domain": "de126.alexsun55.ru",
+  "subscription_domain": "de126-sub.alexsun55.ru",
+  "http_redirects": {
+    "main_status": 308,
+    "sub_status": 308,
+    "status": "PASS"
+  },
+  "https_checks": {
+    "trusted_ca_tls": true,
+    "sub_root_404": true,
+    "status": "PASS"
+  },
+  "step_a_xonix": {
+    "status": "PASS",
+    "http_status": 200,
+    "title_matched": true,
+    "canvas_box": {
+      "width": 1024,
+      "height": 683
+    },
+    "console_error_count": 0,
+    "pageerror_count": 0
+  },
+  "step_b_panel_inbounds": {
+    "status": "PASS",
+    "auth_cookies": {
+      "count": 1,
+      "httpOnly": true,
+      "secure": true,
+      "sameSite_lax": true
+    },
+    "total_visible_rows": 6,
+    "all_six_visible": true,
+    "all_six_enabled": true,
+    "inbounds": {
+      "VLESS-REALITY-XHTTP-H2": {
+        "visible": true,
+        "enabled": true,
+        "row_matches": 1
+      },
+      "VLESS-TLS-XHTTP-H2": {
+        "visible": true,
+        "enabled": true,
+        "row_matches": 1
+      },
+      "VLESS-REALITY-VISION": {
+        "visible": true,
+        "enabled": true,
+        "row_matches": 1
+      },
+      "WIREGUARD": {
+        "visible": true,
+        "enabled": true,
+        "row_matches": 1
+      },
+      "AMNEZIAWG-3.1": {
+        "visible": true,
+        "enabled": true,
+        "row_matches": 1
+      },
+      "HYSTERIA2": {
+        "visible": true,
+        "enabled": true,
+        "row_matches": 1
+      }
+    },
+    "console_error_count": 1,
+    "console_errors": [
+      "Failed to load resource: the server responded with a status of 404 ()"
+    ],
+    "pageerror_count": 0
+  },
+  "step_c_clients": {
+    "status": "PASS",
+    "url_path_clients": true,
+    "table_loaded": true,
+    "email_column_found": false,
+    "headers": [
+      "",
+      "Actions",
+      "Enabled",
+      "Online",
+      "Client",
+      "Attached inbounds",
+      "Traffic",
+      "Speed",
+      "Remaining",
+      "Duration"
+    ],
+    "rendered_row_count": 6,
+    "non_empty_row_count": 6,
+    "matched_expected_clients": [
+      "preview-P0",
+      "preview-P1",
+      "preview-P3",
+      "starter-wireguard",
+      "starter-amneziawg31",
+      "starter-hysteria2"
+    ],
+    "console_error_count": 0,
+    "pageerror_count": 0
+  }
+}

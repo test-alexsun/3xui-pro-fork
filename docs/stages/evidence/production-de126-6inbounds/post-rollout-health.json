@@ -1,0 +1,85 @@
+{
+  "status": "PASS",
+  "nginx_t": "PASS",
+  "sqlite_integrity_check": "ok",
+  "inbounds_count": 6,
+  "journals": {
+    "panel_inbounds_phase": "READY",
+    "panel_inbounds_sha256": "7ff0149a3ee5b74ec96b45668668bef0ecd8b1be76fef7d7b5ccba7765252ec0",
+    "vpn_inbounds_phase": "READY",
+    "vpn_inbounds_version": 2,
+    "vpn_inbounds_profiles": {
+      "WIREGUARD": 4,
+      "AMNEZIAWG-3.1": 5,
+      "HYSTERIA2": 6
+    },
+    "vpn_inbounds_ports": {
+      "WIREGUARD": 51820,
+      "AMNEZIAWG-3.1": 29177,
+      "HYSTERIA2": 24443
+    },
+    "vpn_inbounds_subnets": {
+      "WIREGUARD": "10.89.8.0/24",
+      "AMNEZIAWG-3.1": "10.88.32.0/24"
+    }
+  },
+  "backups": {
+    "pre_rollout_backup_dir": "/var/backups/3xui-pro-fork/pre-6inbounds-20261124T084510Z",
+    "pre_rollout_manifest_sha256_ok": true,
+    "installer_backup_dir": "/var/lib/3xui-pro-fork/preview08-backup-482dd1cdafd75fdd",
+    "installer_backup_sqlite_ok": true,
+    "standalone_awg_archive_files": [
+      "client.conf",
+      "metadata.json",
+      "server.setconf"
+    ]
+  },
+  "units": {
+    "3xui-pro-fork.service": {
+      "MainPID": "101179",
+      "MemoryCurrent": "100757504",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "3xui-pro-fork-awg.service": {
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "ActiveState": "inactive",
+      "UnitFileState": "disabled"
+    },
+    "nginx.service": {
+      "MainPID": "85182",
+      "MemoryCurrent": "5640192",
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    },
+    "3xui-preview-xray.service": {
+      "MainPID": "0",
+      "MemoryCurrent": "[not set]",
+      "ActiveState": "inactive",
+      "UnitFileState": "disabled"
+    },
+    "3xui-preview-renew.timer": {
+      "ActiveState": "active",
+      "UnitFileState": "enabled"
+    }
+  },
+  "process_rss_kb": {
+    "x_ui_MainPID": 133340,
+    "xray_child_pid": 49156
+  },
+  "memory": {
+    "MemTotal": "990564 kB",
+    "MemAvailable": "637124 kB",
+    "SwapTotal": "0 kB",
+    "free_m_table": "total        used        free      shared  buff/cache   available\nMem:             967         344         407           3         361         622\nSwap:              0           0           0"
+  },
+  "loadavg": "0.15 0.06 0.01 1/106 101669",
+  "disk": {
+    "root_free_gib": 7.78,
+    "root_free_inodes": 609760,
+    "vartmp_free_gib": 7.78
+  },
+  "oom_count": 0,
+  "stray_vartmp_3xui_files": []
+}

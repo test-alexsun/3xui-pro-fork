@@ -1,0 +1,50 @@
+{
+  "scope": "external Docker Debian 13 client -> de126 (179.254.154.126)",
+  "domain": "de126.alexsun55.ru",
+  "subscription_domain": "de126-sub.alexsun55.ru",
+  "profiles": {
+    "P0": {
+      "tag": "VLESS-REALITY-XHTTP-H2",
+      "port": 8443,
+      "transport": "xhttp",
+      "security": "reality",
+      "client_email": "preview-P0",
+      "sub_http_200": true,
+      "json_http_200": true,
+      "clash_http_200": true,
+      "sub_headers_ok": true,
+      "egress_ip_verified": "179.254.154.126",
+      "decoy_https_status": 200,
+      "status": "PASS"
+    },
+    "P1": {
+      "tag": "VLESS-TLS-XHTTP-H2",
+      "port": 443,
+      "transport": "xhttp",
+      "security": "tls",
+      "client_email": "preview-P1",
+      "sub_http_200": true,
+      "json_http_200": true,
+      "clash_http_200": true,
+      "sub_headers_ok": true,
+      "egress_ip_verified": "179.254.154.126",
+      "decoy_https_status": 200,
+      "status": "PASS"
+    },
+    "P3": {
+      "tag": "VLESS-REALITY-VISION",
+      "port": 9443,
+      "transport": "tcp",
+      "security": "reality",
+      "client_email": "preview-P3",
+      "sub_http_200": true,
+      "json_http_200": true,
+      "clash_http_200": true,
+      "sub_headers_ok": true,
+      "egress_ip_verified": "179.254.154.126",
+      "decoy_https_status": 200,
+      "status": "PASS"
+    }
+  },
+  "status": "PASS"
+}

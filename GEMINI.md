@@ -2,11 +2,16 @@
 
 Прочитайте [AGENTS.md](AGENTS.md): это общие обязательные правила. Здесь актуальная карта проекта, а не transcript прошлых чатов.
 
+> [!NOTE]
+> **В рамках проекта владелец разрешил автономную работу с GitHub preview-веткой и VPS de126, включая необходимые изменения production.** Данное разрешение относилось исключительно к заданию по автономному развёртыванию шести Inbounds на `de126` и публикации результатов в preview-ветку, **не является бессрочным правом на любые будущие действия и не отменяет ограничений безопасности** (`main`, `force push`, секреты, backups, SSH, firewall). По умолчанию для новых сессий production остаётся read-only до отдельного явного поручения владельца.
+
 ## Проект и статус
 
 `test-alexsun/3xui-pro-fork`, preview `preview/xonix-standalone-debian13`, Debian 13 amd64/systemd. Установщик объединяет `3x-ui`, `Xray`, `Nginx`, `Let's Encrypt`, `XONIX` и шесть нативных панельных inbound: `P0`, `P1`, `P3`, `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`.
 
-**PREVIEW-XONIX-08: PASS на чистой Debian 13 lab VM** (все шесть управляемых inbound, fresh install, safe repeat, UI, subscriptions, common health и отдельные protocol/integration suites). **Production `de126` (`179.254.154.126`) и ветка `main` (`7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`) не изменялись**: production остаётся на `a3a6b991eb21dc2b4822c4fae13426d91e19db48` (3 VLESS + отдельный `3xui-pro-fork-awg.service` на UDP `29177`). См. [PROJECT_STATUS](docs/PROJECT_STATUS.md) и [08 evidence](docs/stages/evidence/preview-xonix-08/test-results.md).
+- **SIX-INBOUNDS-PRODUCTION (`de126`, `179.254.154.126`): PASS** (2026-11-24). Узел переведён с 3 VLESS + standalone AWG на все шесть нативных inbound с ревизии `9e44b525685458f00c34effe6795814b1da24da9` (`preview-panel-inbounds.json` `READY` с неизменным SHA256 + `preview-vpn-inbounds.json` `version: 2`, `READY`; `3xui-pro-fork-awg.service` `inactive`/`disabled`; `xproawg0` удалён; pre-rollout backup `/var/backups/3xui-pro-fork/pre-6inbounds-20261124T084510Z` и `/var/lib/3xui-pro-fork/awg/` сохранены). См. [PRODUCTION_ROLLOUT_6_INBOUNDS](docs/PRODUCTION_ROLLOUT_6_INBOUNDS.md) и [production evidence](docs/stages/evidence/production-de126-6inbounds/test-results.md).
+- **PREVIEW-XONIX-08 (чистая Debian 13 lab VM): PASS**. См. [PROJECT_STATUS](docs/PROJECT_STATUS.md) и [08 evidence](docs/stages/evidence/preview-xonix-08/test-results.md).
+- **GitHub `main`**: `e1240960c49db774fada954340184f625bacc768` (**не изменялся**).
 
 ## Закреплённый tuple
 
@@ -31,7 +36,7 @@ WireGuard и AmneziaWG 3.1 — независимые обязательные �
 
 - Fresh `--panel-inbounds` (по умолчанию): устанавливает все 6 управляемых inbound через `install_candidate.py --no-standalone-awg`, `preview_panel_inbounds.py` и `preview_vpn_inbounds.py`. Бинарники AWG сохраняются в `/opt/3xui-pro-fork/awg/`, unit `3xui-pro-fork-awg.service` остаётся inactive/disabled.
 - `--vless-only`: opt-out при fresh install для сохранения прежней схемы (3 VLESS + отдельный `3xui-pro-fork-awg.service` на `/30`).
-- `--panel-inbounds --add-vpn-inbounds` (плюс `--handoff-standalone-awg`, если активен `3xui-pro-fork-awg.service`): opt-in добавление WG/AWG3.1/HY2 на существующий 3-VLESS `READY` узел.
+- `--panel-inbounds --add-vpn-inbounds` (плюс `--handoff-standalone-awg`, если активен `3xui-pro-fork-awg.service`): opt-in добавление WG/AWG3.1/HY2 на существующий 3-VLESS `READY` узел (применено на `de126` 2026-11-24).
 
 ## Где читать и менять
 
@@ -45,12 +50,13 @@ WireGuard и AmneziaWG 3.1 — независимые обязательные �
 | `release/preview_amneziawg31.py` | Независимый AWG 3.1 модуль: `awg` keys/HPK, `vpn://`, `.conf`/`setconf`, listener checks |
 | `release/preview_hysteria2.py` | Hysteria2 v2 контракт, `hysteria2://`, TLS/h3 проверка, outbound/listener checks |
 | `release/preview_vpn_inbounds.py` | Six-inbound VPN orchestration (`provision_vpn_inbounds`, `verify_ready`, `preview-vpn-inbounds.json`) |
-| `release/awg_service.py`, `awg_config_candidate.py` | Standalone AWG supervisor и `/30` generator (режим `--vless-only` и unmutated production) |
+| `release/awg_service.py`, `awg_config_candidate.py` | Standalone AWG supervisor и `/30` generator (режим `--vless-only` и архив `/var/lib/3xui-pro-fork/awg/`) |
 | `release/distribution/` | Pinned AWG distribution, sources, лицензии |
 | `assets/decoy/xonix/` | Original game HTML |
 | `tests/protocols/`, `tests/integration/`, `tests/release/`, `tests/xonix/` | Protocol/integration unit & E2E suites, UI Playwright и historical checks |
+| `docs/PRODUCTION_ROLLOUT_6_INBOUNDS.md` | Документ production-развёртывания 6 Inbounds на `de126` |
 | `docs/DECISIONS.md` | Зафиксированные архитектурные решения (ADR) |
-| `docs/stages/evidence/` | Historical reports и PREVIEW-XONIX-08 acceptance JSONs |
+| `docs/stages/evidence/` | Historical reports, `preview-xonix-08` и `production-de126-6inbounds` JSONs |
 
 ## Архитектурные решения и инварианты
 
@@ -62,14 +68,13 @@ Debian 13 amd64/systemd закреплён для единообразных п�
 
 Читайте owning source перед правкой. Сохраняйте существующих клиентов, UUID, ключи, short IDs, порты, домены и сертификаты. Historical `318/318 PASS` (07A) не перезапускайте на каждом docs/targeted изменении. Для code changes запускайте `tests/protocols/`, `tests/integration/`, targeted `tests/release/`, а полный live E2E — только в disposable Debian 13 lab с `PREVIEW08_RUN_E2E=1` и `/var/lib/3xui-preview08-lab`. Подробности в [TESTING](docs/TESTING.md).
 
-Read-only Linux diagnostics: `systemctl status 3xui-pro-fork.service nginx --no-pager`, `systemctl is-active 3xui-pro-fork-awg.service 3xui-preview-xray.service`, `ss -H -ltnp`, `ss -H -lunp`, `nginx -t`, `free -m`, `df -h`. Никогда не выполнять production fault injection или restart по разрешению на аудит.
+Read-only Linux diagnostics: `systemctl status 3xui-pro-fork.service nginx --no-pager`, `systemctl is-active 3xui-pro-fork-awg.service 3xui-preview-xray.service`, `ss -H -ltnp`, `ss -H -lunp`, `nginx -t`, `free -m`, `df -h`. Никогда не выполнять production fault injection или несогласованный restart на `de126`.
 
 ## GitHub и безопасность
 
-Работайте только в `preview/xonix-standalone-debian13`, обычные commits/push, remote HEAD verification. `main` (`7e822e3e5dfe6f6e95c57fc83b24d00cd7fde661`) и force push запрещены. Проверять staged diff на secrets, private DB/backups, персональные Windows paths и CRLF; не публиковать raw private evidence. Точная publication revision фиксируется только после push.
+Работайте только в `preview/xonix-standalone-debian13`, обычные commits/push, remote HEAD verification. `main` (`e1240960c49db774fada954340184f625bacc768`) и force push запрещены. Проверять staged diff на secrets, private DB/backups, персональные Windows paths и CRLF; не публиковать raw private evidence. Точная publication revision фиксируется только после push.
 
 ## Известные ограничения
 
-- Тестирование совместимости со старым standalone AWG `/30` клиентским профилем **официально отменено**: проверяются новые синтетические клиенты WG и AWG 3.1, при сохранении production клиентов/ключей без изменений.
-- Full binary updater/rollback и power-loss recovery журналов не реализованы; `kernelMode: true` AWG не принят; server MTU `1420` не меняется (client MTU `1368` — только для измеренного 07A path); `clients/get` и `clients/list` возвращают `allowedIPs` как CSV-строку, а `inbounds/list` — как список.
-- Production six-inbound rollout не выполнялся и требует отдельного операторского разрешения и maintenance window. См. [ANTIGRAVITY_HANDOFF](docs/ANTIGRAVITY_HANDOFF.md), [INSTALLATION](docs/INSTALLATION.md), [OPERATIONS](docs/OPERATIONS.md).
+- Тестирование совместимости со старым standalone AWG `/30` клиентским профилем **официально отменено**: старые `/30` standalone AWG-профили (`10.88.31.0/30`) после переключения `de126` на embedded AWG 3.1 теряют доступ (при сохранении старых файлов `/var/lib/3xui-pro-fork/awg/` и pre-rollout backup `/var/backups/3xui-pro-fork/pre-6inbounds-20261124T084510Z`).
+- Full binary updater/rollback и power-loss recovery журналов не реализованы; `kernelMode: true` AWG не принят; server MTU `1420` не меняется (client MTU `1368` — для измеренного 07A path, client MTU `1280` — для 1568 B PQ TLSv1.3 `ClientHello` через локальный Docker/WSL2/ISP WAN-путь на `de126`); `clients/get` и `clients/list` возвращают `allowedIPs` как CSV-строку, а `inbounds/list` — как список. См. [ANTIGRAVITY_HANDOFF](docs/ANTIGRAVITY_HANDOFF.md), [INSTALLATION](docs/INSTALLATION.md), [OPERATIONS](docs/OPERATIONS.md).

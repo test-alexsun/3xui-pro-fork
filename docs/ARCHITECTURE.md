@@ -49,7 +49,7 @@ flowchart LR
 | `/var/lib/3xui-pro-fork/preview-panel.json` | Root-only setup/credential state (не публиковать) |
 | `/var/lib/3xui-pro-fork/preview-panel-inbounds.json` | Fail-closed журнал native P0/P1/P3 migration (`phase: READY`) |
 | `/var/lib/3xui-pro-fork/preview-vpn-inbounds.json` | Fail-closed журнал 6-inbound VPN provisioning (`version: 2`, `phase: READY`) |
-| `/var/lib/3xui-pro-fork/awg/` | Конфигурация standalone `3xui-pro-fork-awg.service` только в `--vless-only` или на unmutated production `de126` |
+| `/var/lib/3xui-pro-fork/awg/` | Архивная конфигурация standalone `3xui-pro-fork-awg.service` (`--vless-only` или сохранённый pre-handoff архив на `de126`) |
 | `/var/lib/3xui-preview-acme/` | Изолированный Certbot config/work/log для SAN-сертификата двух доменов |
 | `assets/decoy/xonix/index.html` | Статический decoy XONIX (`/` основного домена, high score в browser `localStorage`) |
 
@@ -72,4 +72,4 @@ stateDiagram-v2
 
 Оба журнала (`preview-panel-inbounds.json` и `preview-vpn-inbounds.json`) работают по принципу fail-closed: после достижения `READY` автоматический rollback или повторное усыновление запрещены, а `RECOVERY_REQUIRED` требует ручной диагностики с сохранением backups ([RECOVERY](RECOVERY.md)).
 
-**Production vs Lab**: production VPS `de126` (`179.254.154.126`) не изменялся и остаётся на 3 VLESS (`READY`) + отдельной службе `3xui-pro-fork-awg.service` на UDP `29177`. Автоматическое отключение production AWG без явных `--add-vpn-inbounds --handoff-standalone-awg` и отдельного разрешения запрещено.
+**Production vs Lab**: production VPS `de126` (`179.254.154.126`) переведён 2026-11-24 в 6-inbound конфигурацию с ревизии `9e44b525685458f00c34effe6795814b1da24da9` штатным `--panel-inbounds --add-vpn-inbounds --handoff-standalone-awg` ([PRODUCTION_ROLLOUT_6_INBOUNDS](PRODUCTION_ROLLOUT_6_INBOUNDS.md)); оба журнала в `READY`, прежний `/var/lib/3xui-pro-fork/awg/` и backup сохранены, `3xui-pro-fork-awg.service` `inactive`/`disabled`. Автоматические мутации без отдельного разрешения для будущих задач запрещены.

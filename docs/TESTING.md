@@ -1,6 +1,8 @@
 # Проверки и evidence
 
-**Historical baseline: 318/318 PASS** ([07A report](stages/evidence/preview-xonix-07a/test-results.md), 245 historical + 73 preview tests) сохранён без повторного запуска. Отдельно **PREVIEW-XONIX-08: PASS** для всех шести управляемых inbound (`P0`, `P1`, `P3`, `WIREGUARD`, `AMNEZIAWG-3.1`, `HYSTERIA2`) в чистой Debian 13 lab VM ([08 report](stages/evidence/preview-xonix-08/test-results.md)).
+**Historical baseline: 318/318 PASS** ([07A report](stages/evidence/preview-xonix-07a/test-results.md), 245 historical + 73 preview tests) сохранён без повторного запуска. Отдельно подтверждены:
+- **PREVIEW-XONIX-08: PASS** в чистой Debian 13 lab VM ([08 report](stages/evidence/preview-xonix-08/test-results.md));
+- **SIX-INBOUNDS-PRODUCTION (`de126`): PASS** после штатного rollout 2026-11-24 ([PRODUCTION_ROLLOUT_6_INBOUNDS](PRODUCTION_ROLLOUT_6_INBOUNDS.md) и [production evidence](stages/evidence/production-de126-6inbounds/test-results.md)).
 
 ## Разделение контуров тестирования
 
@@ -22,8 +24,8 @@
 
 ## Отмена legacy client compatibility
 
-Проверка старых standalone `/30` WG/AWG клиентских профилей и профилей AWG 1.x/2.x **официально отменена**. Финальная лабораторная приёмка использует новых синтетических клиентов `WIREGUARD` и `AMNEZIAWG-3.1`, при этом существующие клиенты и ключи на production `de126` не изменяются.
+Проверка старых standalone `/30` WG/AWG клиентских профилей и профилей AWG 1.x/2.x **официально отменена**. Лабораторная (PREVIEW-XONIX-08) и внешняя production-приёмка (`de126`) используют новых независимых клиентов `WIREGUARD`, `AMNEZIAWG-3.1` и `HYSTERIA2`; при переключении `de126` прежний архив `/var/lib/3xui-pro-fork/awg/` и согласованный pre-rollout backup сохранены без удаления.
 
 ## Безопасность проверок
 
-Live E2E и Playwright UI тесты запускаются **исключительно** в изолированной QEMU/Docker лаборатории (RFC1918 bind, `preview-client` netns, тестовый Pebble ACME CA). Запуск E2E-скриптов, создание маркера `/var/lib/3xui-preview08-lab`, мутация SQLite или restart служб на production `de126` запрещены без отдельного разрешения.
+Live E2E с мутациями окружения (`PREVIEW08_RUN_E2E=1` и маркер `/var/lib/3xui-preview08-lab`) и `PREVIEW08` netns-сценарии запускаются **исключительно** в изолированной QEMU/Docker лаборатории. Против `de126` допустим только санитайзнутый read-only аудит (а согласованные эфемерные production smoke-тесты выполняются исключительно при явном поручении владельца с последующим удалением временных тестовых клиентов и без fault-injection).
